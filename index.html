@@ -29,7 +29,6 @@
 
         .ad-container:empty { display: none !important; }
         .nav-link-active { border-bottom: 3px solid #fbbf24; color: #fbbf24 !important; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
         /* Custom Scrollbar */
         .sidebar-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
@@ -195,18 +194,20 @@
                         setVisibleCount(itemIndex + 10);
                     }
                 }
-            }, [highlightedItemId, filtered]);
+            },[highlightedItemId, filtered]);
 
             const visibleData = filtered.slice(0, visibleCount);
 
-            // تم التعديل لتجنب تصغير الأبعاد بقوة لصور الأنشطة
-            const getThumbnail = (url, isActivity = false) => {
-                if (!url) return 'https://via.placeholder.com/300?text=No+Image';
+            // تم التعديل: استخدام c_fit لعدم قص الصورة نهائياً، وتقليل الجودة q_auto:eco لسرعة خارقة في البطاقات
+            const getThumbnail = (url) => {
+                if (!url) return 'https://via.placeholder.com/400x300?text=No+Image';
                 if (url.includes('cloudinary.com')) {
+                    // c_fit تضمن بقاء الصورة كاملة دون قص، w_300 لتقليل الحجم جداً للبطاقات
+                    const transform = '/upload/w_300,c_fit,q_auto:eco,f_auto/';
                     if (url.toLowerCase().endsWith('.pdf')) {
-                        return url.replace('/upload/', '/upload/w_300,q_auto,f_auto/').replace(/\.pdf$/i, '.jpg');
+                        return url.replace('/upload/', transform).replace(/\.pdf$/i, '.jpg');
                     }
-                    return url.replace('/upload/', isActivity ? '/upload/q_auto,f_auto/' : '/upload/w_300,q_auto,f_auto/');
+                    return url.replace('/upload/', transform);
                 }
                 return url;
             };
@@ -273,7 +274,6 @@
             const isA4Card = type === 'lectures' || type === 'notes' || type === 'reviews';
             const isActivities = type === 'activities';
 
-            // تحديد الـ Layout بناءً على القسم (Masonry للأنشطة)
             let gridClass = "grid gap-3 md:gap-4 ";
             if (isActivities) {
                 gridClass = "columns-1 sm:columns-2 lg:columns-3 gap-3 space-y-3";
@@ -337,24 +337,22 @@
                             <div className="col-span-full text-center py-10 text-gray-400 text-sm">لا توجد بيانات متاحة حالياً.</div>
                         ) : (
                             visibleData.map(item => {
-                                // تصميم عرض الأنشطة بالكامل (Masonry)
                                 if (isActivities) {
                                     return (
                                         <div key={item.id} id={`card-${item.id}`} className={`break-inside-avoid relative rounded-xl overflow-hidden cursor-pointer shadow hover:shadow-lg transition-all duration-300 group border border-gray-200 bg-black ${highlightedItemId === item.id ? 'highlight-item' : ''}`} onClick={() => onPreviewSingle(item.fileUrl)}>
-                                            {/* زر المشاركة بالأسفل يسار للصورة */}
                                             <button onClick={(e) => { e.stopPropagation(); handleShareCard(item); }} className="absolute bottom-3 left-3 bg-white/90 text-blue-900 w-8 h-8 rounded-full flex items-center justify-center shadow-lg z-30 hover:bg-white transition-colors" title="مشاركة الملف">
                                                 <i className="fa-solid fa-share-nodes text-[12px]"></i>
                                             </button>
 
+                                            {/* استخدام object-contain لعدم قص الصورة */}
                                             <img 
-                                                src={getThumbnail(item.fileUrl, true)} 
+                                                src={getThumbnail(item.fileUrl)} 
                                                 alt={item.title} 
                                                 loading="lazy" 
-                                                className="w-full h-auto object-cover min-h-[150px] opacity-90 group-hover:opacity-100 group-hover:scale-[1.02] transition-all duration-300" 
-                                                onError={(e) => { e.target.src = 'https://via.placeholder.com/300x200?text=Activity' }} 
+                                                className="w-full h-auto object-contain min-h-[150px] opacity-90 group-hover:opacity-100 group-hover:scale-[1.02] transition-all duration-300 bg-gray-900" 
+                                                onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Activity' }} 
                                             />
 
-                                            {/* العنوان والتاريخ كـ Overlay من أعلى الصورة */}
                                             <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent p-4 pb-12 text-white z-10 pointer-events-none">
                                                 <h4 className="font-bold text-sm md:text-base leading-snug drop-shadow-lg">{item.title}</h4>
                                                 {item.createdAt && (
@@ -367,7 +365,6 @@
                                     );
                                 }
 
-                                // التصميم العادي لباقي الأقسام
                                 return (
                                     <div key={item.id} id={`card-${item.id}`} className={`p-1.5 md:p-2 border border-blue-900/10 rounded-xl hover:shadow-md transition-shadow duration-75 bg-white relative animate-fade-in flex ${isA4Card ? 'flex-col' : 'flex-col sm:flex-row items-start'} gap-2 overflow-hidden ${highlightedItemId === item.id ? 'highlight-item' : ''}`}>
 
@@ -381,13 +378,14 @@
                                             </div>
                                         )}
 
-                                        <div className={`flex-shrink-0 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 relative cursor-pointer flex items-center justify-center ${isA4Card ? 'w-full aspect-[1/1.4] p-0.5' : 'w-full sm:w-1/3 min-h-[100px] p-0.5'}`} onClick={() => onPreviewSingle(item.fileUrl)}>
+                                        {/* استخدام object-contain لضمان عرض الصورة كاملة بدون قص */}
+                                        <div className={`flex-shrink-0 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 relative cursor-pointer flex items-center justify-center ${isA4Card ? 'w-full aspect-[1/1.4] p-0' : 'w-full sm:w-1/3 aspect-video sm:aspect-auto sm:h-32 p-0'}`} onClick={() => onPreviewSingle(item.fileUrl)}>
                                             <img 
                                                 src={getThumbnail(item.fileUrl)} 
                                                 alt={item.title} 
                                                 loading="lazy" 
-                                                className={`w-full rounded ${isA4Card ? 'h-full object-contain' : 'max-h-48 object-contain'}`} 
-                                                onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=File' }} 
+                                                className="w-full h-full object-contain p-1" 
+                                                onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=File' }} 
                                             />
                                             {item.fileUrl?.endsWith('.pdf') && <div className="absolute bottom-1 right-1 bg-red-600 text-white text-[8px] px-1.5 rounded font-bold shadow z-10">PDF</div>}
                                         </div>
@@ -404,10 +402,10 @@
                                                         </span>
                                                     )}
                                                 </div>
-                                                <h4 className={`font-bold text-gray-800 line-clamp-2 leading-tight ${isA4Card ? 'text-[11px]' : 'text-xs md:text-sm'}`}>{item.title}</h4>
+                                                <h4 className={`font-bold text-gray-800 leading-tight ${isA4Card ? 'text-[11px]' : 'text-xs md:text-sm'}`}>{item.title}</h4>
 
                                                 {item.description && (
-                                                    <div className="mt-1.5 text-[9px] md:text-[10px] text-gray-600 bg-soft-white border border-gray-100 p-1.5 rounded-lg h-16 overflow-y-auto sidebar-scroll whitespace-pre-wrap leading-relaxed">
+                                                    <div className="mt-1.5 text-[9px] md:text-[10px] text-gray-600 bg-soft-white border border-gray-100 p-1.5 rounded-lg max-h-24 overflow-y-auto sidebar-scroll whitespace-pre-wrap leading-relaxed">
                                                         {item.description}
                                                     </div>
                                                 )}
@@ -472,8 +470,7 @@
             const[previewData, setPreviewData] = useState({ items:[], index: -1 });
             const[downloadItem, setDownloadItem] = useState(null); 
             const[toast, setToast] = useState({ message: '', type: '' });
-            
-            // استخدام useTransition لمنع اللاج أثناء الانتقال بين الأقسام الثقيلة مثل المذكرات
+
             const [isPending, startTransition] = useTransition();
 
             const showToast = (message, type = 'info', duration = 2500) => {
@@ -636,7 +633,6 @@
 
             const getByType = (type) => materials.filter(m => m.sectionType === type).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
 
-            // التنقل باستخدام startTransition لمنع اللاج والتجمد
             const navigate = (pg) => {
                 setIsMobileMenuOpen(false);
                 setHighlightedItemId(null);
@@ -704,8 +700,7 @@
                     </nav>
 
                     <div className={`fixed inset-0 bg-black/50 z-[100] transition-opacity duration-75 lg:hidden ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
-                    
-                    {/* تعديل القائمة الجانبية لتنتهي بعد المحتوى مباشرة عبر h-fit و rounded-bl-3xl */}
+
                     <div className={`fixed top-0 right-0 max-h-[100dvh] h-fit pb-3 rounded-bl-3xl w-56 md:w-64 bg-soft-white z-[101] shadow-2xl transform transition-transform duration-100 ease-out lg:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                         <div className="bg-blue-900 text-white p-3 md:p-4 flex justify-between items-center border-b-2 border-yellow-500 rounded-bl-sm">
                             <span className="font-bold text-sm md:text-base">القائمة</span>
@@ -737,12 +732,6 @@
                     </div>
 
                     <main className="flex-grow container mx-auto px-3 md:px-4 py-4 md:py-6 max-w-5xl relative">
-                        {/* إظهار علامة تحميل بسيطة في حال التنقل لتجنب شعور اللاج */}
-                        {isPending && (
-                            <div className="absolute top-10 left-1/2 -translate-x-1/2 z-10 bg-blue-900 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg opacity-80 flex items-center gap-2">
-                                <i className="fa-solid fa-spinner fa-spin"></i> جاري التجهيز...
-                            </div>
-                        )}
 
                         <AdSlot id="top-ad" />
 
@@ -889,7 +878,6 @@
 
             const[confirmDelete, setConfirmDelete] = useState(null);
 
-            // تعديل لتفريغ حقل العنوان للصور والفيديوهات فقط
             const handleFileChange = (e) => {
                 const files = Array.from(e.target.files);
                 setUploadQueue(files.map(f => {
@@ -930,7 +918,6 @@
                     const finalStudySystem = (sec === 'lectures' || sec === 'notes' || sec === 'reviews') ? studySystem : 'عام';
 
                     if (uploadQueue.length > 0) {
-                        // التأكد من أن جميع الحقول تحتوي على عنوان للملفات المحددة
                         const hasEmptyTitles = uploadQueue.some(item => !item.title || !item.title.trim());
                         if (hasEmptyTitles) {
                             showToast("الرجاء كتابة وصف/عنوان لجميع الملفات المحددة", "error");
@@ -951,12 +938,12 @@
                                 if (fileToUpload.size > 500 * 1024) { 
                                     showToast(`جاري ضغط الصورة (${i+1}/${uploadQueue.length})...`, "info", 0);
                                     try {
-                                        // تسريع عملية الضغط بتخفيض الحدود القصوى
+                                        // تم تقليل جودة وأبعاد الضغط المبدئي قبل الرفع لسرعة أكبر
                                         fileToUpload = await imageCompression(fileToUpload, { 
-                                            maxSizeMB: 1, 
-                                            maxWidthOrHeight: 1280, 
+                                            maxSizeMB: 0.5, 
+                                            maxWidthOrHeight: 1000, 
                                             useWebWorker: true,
-                                            initialQuality: 0.7,
+                                            initialQuality: 0.6,
                                             onProgress: (p) => setUploadProgress(Math.floor(p * 0.4)) 
                                         });
                                         isCompressed = true;
@@ -969,8 +956,10 @@
                             showToast(`جاري الرفع للسيرفر (${i+1}/${uploadQueue.length})...`, "info", 0);
                             const d = await uploadFileWithProgress(fileToUpload, isCompressed);
 
+                            // التعديل السحري: حفظ الصورة في Firebase مضغوطة بعرض 1000 بيكسل (للقراءة الواضحة) وبجودة ذكية
+                            // هذا يمنع تحميل الصورة الأصلية الثقيلة تماماً حتى عند التكبير
                             if (!isPdf && d.secure_url.includes('/upload/')) {
-                                fileUrl = d.secure_url.replace('/upload/', '/upload/q_auto,f_auto/');
+                                fileUrl = d.secure_url.replace('/upload/', '/upload/w_1000,q_auto,f_auto/');
                             } else {
                                 fileUrl = d.secure_url;
                             }
@@ -1075,16 +1064,16 @@
                         </div>
 
                         {uploadQueue.length === 0 && (
-                            <input placeholder="العنوان (اسم الملف أو الوظيفة)" value={title} className="border border-gray-200 p-2 rounded-lg col-span-1 md:col-span-2 focus:outline-none focus:border-blue-900 bg-white font-bold" onChange={v=>setTitle(v.target.value)} />
+                            <input maxLength={70} placeholder="العنوان (اسم الملف أو الوظيفة - أقصى حد 70 حرف)" value={title} className="border border-gray-200 p-2 rounded-lg col-span-1 md:col-span-2 focus:outline-none focus:border-blue-900 bg-white font-bold" onChange={v=>setTitle(v.target.value)} />
                         )}
 
                         {uploadQueue.length > 0 && (
                             <div className="col-span-1 md:col-span-2 bg-blue-50 p-3 rounded-lg border border-blue-100 space-y-2">
-                                <label className="text-xs font-bold text-blue-900">أضف وصفاً لكل ملف محدد:</label>
+                                <label className="text-xs font-bold text-blue-900">أضف وصفاً لكل ملف محدد (حد أقصى 70 حرف):</label>
                                 {uploadQueue.map((item, idx) => (
                                     <div key={idx} className="flex flex-col sm:flex-row items-center gap-1.5 bg-white p-1.5 rounded border border-gray-200">
                                         <span className="text-[10px] text-gray-500 w-full sm:w-1/3 truncate" dir="ltr">{item.file.name}</span>
-                                        <input className={`border border-gray-200 p-1.5 rounded w-full sm:w-2/3 text-xs focus:outline-none focus:border-blue-900 font-bold bg-gray-50 ${!item.title ? 'border-red-400' : ''}`} value={item.title} placeholder="اكتب العنوان أو الوصف هنا..." onChange={(e) => { const newQ = [...uploadQueue]; newQ[idx].title = e.target.value; setUploadQueue(newQ); }} />
+                                        <input maxLength={70} className={`border border-gray-200 p-1.5 rounded w-full sm:w-2/3 text-xs focus:outline-none focus:border-blue-900 font-bold bg-gray-50 ${!item.title ? 'border-red-400' : ''}`} value={item.title} placeholder="اكتب العنوان أو الوصف هنا..." onChange={(e) => { const newQ =[...uploadQueue]; newQ[idx].title = e.target.value; setUploadQueue(newQ); }} />
                                     </div>
                                 ))}
                             </div>
