@@ -32,15 +32,13 @@
     <meta property="og:title" content="كلية التجارة جامعة الزقازيق | الموقع الرسمي">
     <meta property="og:description" content="البوابة الرسمية والتعليمية الشاملة لطلاب كلية التجارة جامعة الزقازيق - محاضرات، مذكرات، جداول، وأنشطة طلابية.">
     <meta property="og:image" content="https://res.cloudinary.com/dsxrjmcxs/image/upload/c_fill,g_auto,w_1364,h_768,q_auto:eco,f_auto/v1776437104/sm5iuilfl3r1fkmg7jyh.png">
-    <meta property="og:url" content="https://faculty-of-commerce-2026.firebaseapp.com/"> <!-- ضع رابط موقعك هنا -->
+    <meta property="og:url" content="https://faculty-of-commerce-2026.firebaseapp.com/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="تجارة الزقازيق">
     
-    <!-- لتوثيق عرض الصورة بشكل سليم -->
     <meta property="og:image:width" content="1364">
     <meta property="og:image:height" content="768">
 
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="كلية التجارة جامعة الزقازيق">
     <meta name="twitter:description" content="المنصة التعليمية الشاملة لطلاب كلية التجارة جامعة الزقازيق.">
@@ -49,21 +47,17 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
 
-        /* خلفية الموقع مريحة للعين */
         body { font-family: 'Cairo', sans-serif; background-color: #eef2f6; overflow-x: hidden; }
 
         .ad-container:empty { display: none !important; }
         .nav-link-active { border-bottom: 3px solid #fbbf24; color: #fbbf24 !important; }
 
-        /* Custom Scrollbar */
         .sidebar-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
         .sidebar-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        /* إخفاء شريط التمرير الأفقي في الفلاتر */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* تسريع الانيميشن ليكون شبه معدوم لمنع اللاج */
         @keyframes slideDownFade {
             0% { opacity: 0; transform: translate(-50%, -10px); }
             100% { opacity: 1; transform: translate(-50%, 0); }
@@ -82,12 +76,10 @@
         }
         .highlight-item { animation: highlightCard 1s ease-out forwards; }
 
-        /* جعل جميع الانتقالات سريعة جداً (50 ملي ثانية) */
         .duration-300, .duration-150, .duration-75, .transition-all, .transition-colors {
             transition-duration: 50ms !important;
         }
 
-        /* تحسين الأداء الخارق: عدم معالجة العناصر خارج الشاشة */
         .optimized-card {
             content-visibility: auto;
             contain-intrinsic-size: 150px;
@@ -98,7 +90,7 @@
             position: fixed; inset: 0; z-index: 999999;
             background: linear-gradient(135deg, #1e3a8a 0%, #475569 100%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.1s ease-in-out;
+            transition: opacity 0.15s ease-in-out;
         }
         #native-splash::after {
             content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -119,7 +111,7 @@
             <h1 style="font-size: 12px; font-weight: 900; color: white; margin-bottom: 4px; letter-spacing: 1px;">أهلاً بكم</h1>
             <p style="font-size: 10px; font-weight: 700; color: #d1d5db; display:flex; align-items:center; gap:6px; opacity: 0.9;">
                 <i class="fa-solid fa-spinner fa-spin"></i>
-                الرجاء انتظار التحميل...
+                جاري التجهيز...
             </p>
         </div>
     </div>
@@ -132,6 +124,17 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        // الدالة المسؤولة عن إخفاء شاشة التحميل بشكل عام
+        window.hideNativeSplash = () => {
+            const splash = document.getElementById('native-splash');
+            if (splash) {
+                splash.style.opacity = '0';
+                document.body.style.overflow = '';
+                setTimeout(() => splash.remove(), 150);
+            }
+            window.hideNativeSplash = () => {}; // لمنع تشغيلها أكثر من مرة
+        };
 
         const firebaseConfig = {
             apiKey: "AIzaSyANg4wLchZaikXneXr1c3qhRgcOnvPbfoA",
@@ -151,7 +154,6 @@
         const UPLOAD_PRESET = 'my_public_preset';
         const ADMIN_UID = 'mEVbroYWf7cg68SL8CB2uUS8XhZ2';
 
-        // دوال مساعدة عامة للصور والفيديو
         const isVideoUrl = (url) => {
             if (!url) return false;
             return url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes('/video/upload/');
@@ -160,7 +162,6 @@
         const getThumbnail = (url, type = 'default') => {
             if (!url) return 'https://via.placeholder.com/300x300?text=No+Image';
             if (url.includes('cloudinary.com')) {
-                // استخدام جودة eco لسرعة خارقة، وتحديد أبعاد ثابتة حسب النوع
                 let transform = '/upload/w_300,h_300,c_fill,q_auto:eco,f_auto/';
                 if (type === 'a4') transform = '/upload/w_200,h_280,c_fill,q_auto:eco,f_auto/';
                 if (type === 'slider') transform = '/upload/w_800,h_400,c_fit,q_auto:eco,f_auto/';
@@ -245,7 +246,6 @@
             const[filterYear, setFilterYear] = useState(initialFilters?.year || 'اختار الفرقة');
             const[filterSystem, setFilterSystem] = useState(initialFilters?.system || 'اختار النظام'); 
             
-            // تحميل 6 بطاقات فقط في البداية لسرعة خارقة في فتح الصفحة
             const[visibleCount, setVisibleCount] = useState(6);
 
             const years = type === 'training' 
@@ -339,7 +339,6 @@
             return (
                 <div className="bg-soft-white p-3 md:p-4 rounded-xl shadow-sm border border-blue-900/10">
 
-                    {/* تعديل رأس القسم: تصغير الأحجام وجعلها في سطر واحد */}
                     <div className="flex flex-nowrap items-center justify-between mb-3 border-b border-gray-100 pb-2 gap-1.5 overflow-x-auto hide-scrollbar">
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                             <button onClick={onBack} className="text-gray-500 hover:text-blue-900 bg-gray-100 hover:bg-gray-200 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center flex-shrink-0">
@@ -534,12 +533,14 @@
             const[highlightedItemId, setHighlightedItemId] = useState(null);
             const[materials, setMaterials] = useState([]);
             const[schedules, setSchedules] = useState([]);
+            
+            // حالة تحميل بيانات السلايدر
+            const[isSchedulesLoaded, setIsSchedulesLoaded] = useState(false);
+
             const[isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             const[previewData, setPreviewData] = useState({ items:[], index: -1 });
             const[downloadItem, setDownloadItem] = useState(null); 
             const[toast, setToast] = useState({ message: '', type: '' });
-            
-            // حالة فتح المتصفح الداخلي
             const[externalSiteOpen, setExternalSiteOpen] = useState(false);
 
             const showToast = (message, type = 'info', duration = 2500) => {
@@ -661,22 +662,10 @@
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
 
-                let isDataLoaded = false;
-                let splashRemoved = false;
-
-                // إخفاء شاشة التحميل فوراً عند جلب البيانات، أو بعد 800 ملي ثانية كحد أقصى (تسريع خارق)
-                const hideSplash = () => {
-                    if (splashRemoved) return;
-                    splashRemoved = true;
-                    const splash = document.getElementById('native-splash');
-                    if(splash) {
-                        splash.style.opacity = '0';
-                        document.body.style.overflow = '';
-                        setTimeout(() => splash.remove(), 100);
-                    }
-                };
-
-                setTimeout(hideSplash, 800);
+                // تايمر احتياطي لضمان اختفاء شاشة التحميل إذا لم يتم تحميل السلايدر لسبب ما (إنترنت ضعيف مثلاً)
+                const fallbackTimer = setTimeout(() => {
+                    if (window.hideNativeSplash) window.hideNativeSplash();
+                }, 8000);
 
                 onAuthStateChanged(auth, (u) => {
                     setUser(u);
@@ -689,17 +678,21 @@
 
                 const unsubSch = onSnapshot(collection(db, 'schedules'), (snap) => {
                     setSchedules(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                    isDataLoaded = true;
-                    hideSplash();
+                    setIsSchedulesLoaded(true);
+
+                    // إذا كانت الصفحة المفتوحة ليست الصفحة الرئيسية فلن يُعرض السلايدر، لذا نخفي شاشة التحميل فوراً
+                    if (pageParam && pageParam !== 'home') {
+                        if (window.hideNativeSplash) window.hideNativeSplash();
+                    }
                 });
 
-                return () => { unsubMat(); unsubSch(); };
+                return () => { unsubMat(); unsubSch(); clearTimeout(fallbackTimer); };
             },[]);
 
             const getByType = (type) => materials.filter(m => m.sectionType === type).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
 
-            // جعل التنقل لحظي وسريع جداً بدون تعليق
             const navigate = (pg) => {
+                if (window.hideNativeSplash) window.hideNativeSplash();
                 setIsMobileMenuOpen(false);
                 setHighlightedItemId(null);
                 window.scrollTo(0,0);
@@ -717,10 +710,8 @@
                         onNavigate={handleModalNavigate}
                     />
 
-                    {/* المتصفح الداخلي لموقع الخدمات */}
                     {externalSiteOpen && (
                         <div className="fixed inset-0 z-[99999] bg-black flex flex-col animate-fade-in">
-                            {/* شريط علوي للمتصفح الداخلي */}
                             <div className="bg-blue-950 text-white h-14 flex items-center justify-between px-4 shadow-md z-10 border-b border-blue-800">
                                 <div className="flex items-center gap-2">
                                     <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
@@ -737,7 +728,6 @@
                                     </button>
                                 </div>
                             </div>
-                            {/* نافذة عرض الموقع */}
                             <div className="flex-1 w-full bg-gray-100 relative overflow-hidden">
                                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0">
                                     <i className="fa-solid fa-circle-notch fa-spin text-blue-900 text-3xl mb-2"></i>
@@ -769,7 +759,6 @@
                         </div>
                     )}
 
-                    {/* Navbar من التصميم الأصلي الفخم */}
                     <nav className="bg-blue-900 text-white sticky top-0 z-40 shadow-lg border-b-2 border-yellow-500">
                         <div className="w-full px-4 lg:px-8 flex justify-between items-center h-14 md:h-16">
                             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('home')}>
@@ -802,7 +791,6 @@
 
                     <div className={`fixed inset-0 bg-black/50 z-[100] transition-opacity lg:hidden ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
 
-                    {/* Sidebar من التصميم الأصلي */}
                     <div className={`fixed top-0 right-0 max-h-[100dvh] h-fit pb-3 rounded-bl-3xl w-56 md:w-64 bg-soft-white z-[101] shadow-2xl transform transition-transform lg:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                         <div className="bg-blue-900 text-white p-3 md:p-4 flex justify-between items-center border-b-2 border-yellow-500 rounded-bl-sm">
                             <span className="font-bold text-sm md:text-base">القائمة</span>
@@ -840,27 +828,23 @@
                         {page === 'home' && (
                             <div className="space-y-6 md:space-y-8">
                                 <div className="relative rounded-2xl md:rounded-3xl overflow-hidden h-48 md:h-56 shadow-lg">
-                                    <img src="https://res.cloudinary.com/dsxrjmcxs/image/upload/c_fill,g_auto,w_1364,h_768,q_auto:eco,f_auto/v1776437104/sm5iuilfl3r1fkmg7jyh.png" className="w-full h-full object-cover" alt="الكلية" decoding="async" loading="lazy" />
-                                    {/* توسيط النصوص في الهيرو سيكشن */}
+                                    <img src="https://res.cloudinary.com/dsxrjmcxs/image/upload/c_fill,g_auto,w_1364,h_768,q_auto:eco,f_auto/v1776437104/sm5iuilfl3r1fkmg7jyh.png" className="w-full h-full object-cover" alt="الكلية" decoding="async" />
                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-950/85 via-blue-900/45 to-transparent flex flex-col justify-center items-center text-center px-6 md:px-8 text-white">
                                         <h2 className="text-2xl md:text-3xl font-black mb-1 md:mb-2 drop-shadow-lg">بوابة كلية التجارة</h2>
                                         <p className="opacity-90 font-bold text-xs md:text-sm drop-shadow-md">جامعة الزقازيق - شهاب طارق صلاح</p>
                                     </div>
                                 </div>
 
-                                <HomeSlider schedules={schedules} onPreviewSlider={openSliderPreview} />
+                                {isSchedulesLoaded && (
+                                    <HomeSlider 
+                                        schedules={schedules} 
+                                        onPreviewSlider={openSliderPreview} 
+                                        onReady={() => { if (window.hideNativeSplash) window.hideNativeSplash(); }} 
+                                    />
+                                )}
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                                    <HomeCard icon="fa-person-chalkboard" label="المحاضرات" color="bg-blue-600" onClick={() => navigate('lectures')} />
-                                    <HomeCard icon="fa-book" label="المذكرات" color="bg-indigo-600" onClick={() => navigate('notes')} />
-                                    <HomeCard icon="fa-file-shield" label="المراجعات" color="bg-red-600" onClick={() => navigate('reviews')} />
-                                    <HomeCard icon="fa-users-gear" label="الأنشطة" color="bg-green-600" onClick={() => navigate('activities')} />
-                                    <HomeCard icon="fa-graduation-cap" label="التدريب" color="bg-orange-600" onClick={() => navigate('training')} />
-                                    <HomeCard icon="fa-briefcase" label="الوظائف" color="bg-cyan-600" onClick={() => navigate('jobs')} />
-                                    <HomeCard icon="fa-map-location" label="دليل الطالب" color="bg-gray-600" onClick={() => navigate('guide')} />
-                                    <HomeCard icon="fa-circle-info" label="من نحن" color="bg-gray-600" onClick={() => navigate('about')} />
-                                    
-                                    {/* بطاقة موقع الخدمات (بحجم بطاقتين) تفتح في المتصفح الداخلي */}
+                                    {/* بطاقة موقع الخدمات: تم نقلها هنا لتصبح أول كارت */}
                                     <div 
                                         onClick={() => setExternalSiteOpen(true)}
                                         className="col-span-2 md:col-span-2 bg-gradient-to-r from-blue-800 to-indigo-900 p-3 md:p-4 rounded-xl text-white flex items-center gap-3 shadow-md hover:shadow-lg cursor-pointer border border-blue-400/30 transition-all group"
@@ -875,6 +859,15 @@
                                             </p>
                                         </div>
                                     </div>
+
+                                    <HomeCard icon="fa-person-chalkboard" label="المحاضرات" color="bg-blue-600" onClick={() => navigate('lectures')} />
+                                    <HomeCard icon="fa-book" label="المذكرات" color="bg-indigo-600" onClick={() => navigate('notes')} />
+                                    <HomeCard icon="fa-file-shield" label="المراجعات" color="bg-red-600" onClick={() => navigate('reviews')} />
+                                    <HomeCard icon="fa-users-gear" label="الأنشطة" color="bg-green-600" onClick={() => navigate('activities')} />
+                                    <HomeCard icon="fa-graduation-cap" label="التدريب" color="bg-orange-600" onClick={() => navigate('training')} />
+                                    <HomeCard icon="fa-briefcase" label="الوظائف" color="bg-cyan-600" onClick={() => navigate('jobs')} />
+                                    <HomeCard icon="fa-map-location" label="دليل الطالب" color="bg-gray-600" onClick={() => navigate('guide')} />
+                                    <HomeCard icon="fa-circle-info" label="من نحن" color="bg-gray-600" onClick={() => navigate('about')} />
                                 </div>
                             </div>
                         )}
@@ -895,7 +888,6 @@
                         <AdSlot id="bottom-ad" />
                     </main>
 
-                    {/* Bottom Nav: تكبير مساحة الضغط بشكل مريح جداً */}
                     <div className="lg:hidden fixed bottom-0 w-full bg-soft-white border-t border-blue-900/10 flex text-blue-900 z-50 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] rounded-t-xl overflow-hidden">
                         <button onClick={() => navigate('home')} className={`flex-1 flex flex-col items-center justify-center py-3 ${page === 'home' ? 'text-yellow-600 bg-blue-50/50' : 'text-blue-900 hover:bg-gray-50'}`}>
                             <i className="fa-solid fa-house text-lg"></i><span className="text-[10px] mt-1 font-bold">الرئيسية</span>
@@ -942,8 +934,17 @@
             </div>
         );
 
-        const HomeSlider = ({ schedules, onPreviewSlider }) => {
+        // تعديل السلايدر ليرسل إشارة عند اكتمال تحميل الصورة بداخله
+        const HomeSlider = ({ schedules, onPreviewSlider, onReady }) => {
             const[idx, setIdx] = useState(0);
+
+            useEffect(() => {
+                // إذا لم تكن هناك جداول في قاعدة البيانات، يجب إنهاء التحميل فوراً حتى لا نعلق
+                if (schedules && schedules.length === 0 && onReady) {
+                    onReady();
+                }
+            },[schedules, onReady]);
+
             if (!schedules.length) return null;
 
             return (
@@ -952,8 +953,13 @@
                         {schedules[idx].title || 'جداول المحاضرات الرسمية'}
                     </div>
                     <div className="h-40 md:h-72 relative bg-soft-white cursor-pointer overflow-hidden flex items-center justify-center" onClick={() => onPreviewSlider(schedules, idx)}>
-                        {/* استخدام الصورة المصغرة للسلايدر لمنع اللاج */}
-                        <img src={getThumbnail(schedules[idx].url, 'slider')} className="w-full h-full object-contain scale-[1.02]" decoding="async" />
+                        <img 
+                            src={getThumbnail(schedules[idx].url, 'slider')} 
+                            className="w-full h-full object-contain scale-[1.02]" 
+                            decoding="async" 
+                            onLoad={() => onReady && onReady()} 
+                            onError={() => onReady && onReady()} 
+                        />
                         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i-1+schedules.length)%schedules.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white w-7 h-7 rounded-full z-20 flex items-center justify-center"><i className="fa-solid fa-chevron-left text-xs"></i></button>
                         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i+1)%schedules.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white w-7 h-7 rounded-full z-20 flex items-center justify-center"><i className="fa-solid fa-chevron-right text-xs"></i></button>
                     </div>
@@ -1273,9 +1279,8 @@
 
         const root = createRoot(document.getElementById('root'));
         root.render(<App />);
-    </script> <!-- هنا قمنا بإغلاق كود React أولاً -->
+    </script>
 
-    <!-- الآن نضع كود تسجيل Service Worker في سكريبت منفصل -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
