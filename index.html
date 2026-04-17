@@ -59,6 +59,10 @@
         .sidebar-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
         .sidebar-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
+        /* إخفاء شريط التمرير الأفقي في الفلاتر */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         /* تسريع الانيميشن ليكون شبه معدوم لمنع اللاج */
         @keyframes slideDownFade {
             0% { opacity: 0; transform: translate(-50%, -10px); }
@@ -266,7 +270,7 @@
                         setVisibleCount(itemIndex + 12);
                     }
                 }
-            }, [highlightedItemId, filtered]);
+            },[highlightedItemId, filtered]);
 
             const visibleData = filtered.slice(0, visibleCount);
 
@@ -335,16 +339,17 @@
             return (
                 <div className="bg-soft-white p-3 md:p-4 rounded-xl shadow-sm border border-blue-900/10">
 
-                    <div className="flex flex-wrap items-center justify-between mb-4 border-b border-gray-100 pb-3 gap-2">
-                        <div className="flex items-center gap-2 flex-1 overflow-hidden">
-                            <button onClick={onBack} className="text-gray-500 hover:text-blue-900 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
-                                <i className="fa-solid fa-arrow-right text-xs"></i>
+                    {/* تعديل رأس القسم: تصغير الأحجام وجعلها في سطر واحد */}
+                    <div className="flex flex-nowrap items-center justify-between mb-3 border-b border-gray-100 pb-2 gap-1.5 overflow-x-auto hide-scrollbar">
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button onClick={onBack} className="text-gray-500 hover:text-blue-900 bg-gray-100 hover:bg-gray-200 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i className="fa-solid fa-arrow-right text-[10px]"></i>
                             </button>
-                            <div className="text-blue-900 text-sm hidden sm:block"><i className={`fa-solid ${icon}`}></i></div>
-                            <h2 className="text-sm md:text-base font-black text-gray-800 whitespace-nowrap truncate">{title}</h2>
+                            <div className="text-blue-900 text-xs hidden sm:block"><i className={`fa-solid ${icon}`}></i></div>
+                            <h2 className="text-xs md:text-sm font-black text-gray-800 whitespace-nowrap">{title}</h2>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
                             {(!hideYearFilter || showSystemFilter) && (
                                 <>
                                     {!hideYearFilter && (
@@ -352,11 +357,11 @@
                                             <select 
                                                 value={filterYear} 
                                                 onChange={(e) => {setFilterYear(e.target.value); setVisibleCount(6);}} 
-                                                className="appearance-none bg-blue-900 text-white text-[10px] md:text-xs font-bold rounded-lg pl-7 pr-3 py-1.5 outline-none cursor-pointer shadow-sm border border-blue-800"
+                                                className="appearance-none bg-blue-900 text-white text-[9px] md:text-[10px] font-bold rounded-md pl-5 pr-2 py-1 outline-none cursor-pointer shadow-sm border border-blue-800"
                                             >
                                                 {years.map(y => <option key={y} value={y}>{y}</option>)}
                                             </select>
-                                            <i className="fa-solid fa-chevron-down absolute left-2 top-1/2 -translate-y-1/2 text-white text-[9px] pointer-events-none"></i>
+                                            <i className="fa-solid fa-chevron-down absolute left-1.5 top-1/2 -translate-y-1/2 text-white text-[8px] pointer-events-none"></i>
                                         </div>
                                     )}
 
@@ -365,18 +370,18 @@
                                             <select 
                                                 value={filterSystem} 
                                                 onChange={(e) => {setFilterSystem(e.target.value); setVisibleCount(6);}} 
-                                                className="appearance-none bg-blue-900 text-white text-[10px] md:text-xs font-bold rounded-lg pl-7 pr-3 py-1.5 outline-none cursor-pointer shadow-sm border border-blue-800"
+                                                className="appearance-none bg-blue-900 text-white text-[9px] md:text-[10px] font-bold rounded-md pl-5 pr-2 py-1 outline-none cursor-pointer shadow-sm border border-blue-800"
                                             >
                                                 {systems.map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
-                                            <i className="fa-solid fa-chevron-down absolute left-2 top-1/2 -translate-y-1/2 text-white text-[9px] pointer-events-none"></i>
+                                            <i className="fa-solid fa-chevron-down absolute left-1.5 top-1/2 -translate-y-1/2 text-white text-[8px] pointer-events-none"></i>
                                         </div>
                                     )}
                                 </>
                             )}
 
-                            <button onClick={handleShareSection} className="bg-gray-100 text-blue-900 hover:bg-blue-100 w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200">
-                                <i className="fa-solid fa-share-nodes text-xs"></i>
+                            <button onClick={handleShareSection} className="bg-gray-100 text-blue-900 hover:bg-blue-100 w-6 h-6 md:w-7 md:h-7 rounded-md flex items-center justify-center border border-gray-200">
+                                <i className="fa-solid fa-share-nodes text-[10px]"></i>
                             </button>
                         </div>
                     </div>
@@ -533,6 +538,9 @@
             const[previewData, setPreviewData] = useState({ items:[], index: -1 });
             const[downloadItem, setDownloadItem] = useState(null); 
             const[toast, setToast] = useState({ message: '', type: '' });
+            
+            // حالة فتح المتصفح الداخلي
+            const[externalSiteOpen, setExternalSiteOpen] = useState(false);
 
             const showToast = (message, type = 'info', duration = 2500) => {
                 setToast({ message, type });
@@ -654,25 +662,21 @@
                 }
 
                 let isDataLoaded = false;
-                let minTimePassed = false;
+                let splashRemoved = false;
 
-                const checkReadyToHideSplash = () => {
-                    if (isDataLoaded && minTimePassed) {
-                        const splash = document.getElementById('native-splash');
-                        if(splash) {
-                            splash.style.opacity = '0';
-                            document.body.style.overflow = '';
-                            setTimeout(() => {
-                                splash.remove();
-                            }, 100);
-                        }
+                // إخفاء شاشة التحميل فوراً عند جلب البيانات، أو بعد 800 ملي ثانية كحد أقصى (تسريع خارق)
+                const hideSplash = () => {
+                    if (splashRemoved) return;
+                    splashRemoved = true;
+                    const splash = document.getElementById('native-splash');
+                    if(splash) {
+                        splash.style.opacity = '0';
+                        document.body.style.overflow = '';
+                        setTimeout(() => splash.remove(), 100);
                     }
                 };
 
-                setTimeout(() => {
-                    minTimePassed = true;
-                    checkReadyToHideSplash();
-                }, 150); 
+                setTimeout(hideSplash, 800);
 
                 onAuthStateChanged(auth, (u) => {
                     setUser(u);
@@ -686,7 +690,7 @@
                 const unsubSch = onSnapshot(collection(db, 'schedules'), (snap) => {
                     setSchedules(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                     isDataLoaded = true;
-                    checkReadyToHideSplash();
+                    hideSplash();
                 });
 
                 return () => { unsubMat(); unsubSch(); };
@@ -712,6 +716,42 @@
                         onClose={() => setPreviewData({ items:[], index: -1 })} 
                         onNavigate={handleModalNavigate}
                     />
+
+                    {/* المتصفح الداخلي لموقع الخدمات */}
+                    {externalSiteOpen && (
+                        <div className="fixed inset-0 z-[99999] bg-black flex flex-col animate-fade-in">
+                            {/* شريط علوي للمتصفح الداخلي */}
+                            <div className="bg-blue-950 text-white h-14 flex items-center justify-between px-4 shadow-md z-10 border-b border-blue-800">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                                        <i className="fa-solid fa-laptop-file text-blue-300 text-sm"></i>
+                                    </div>
+                                    <span className="font-bold text-sm md:text-base">خدمات الطلاب</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => window.open('https://faculty-of-commerce.netlify.app/', '_blank')} className="text-blue-300 hover:text-white text-[10px] md:text-xs flex items-center gap-1 bg-white/5 px-2 py-1.5 rounded-lg border border-blue-800">
+                                        <i className="fa-solid fa-arrow-up-right-from-square"></i> فتح بالمتصفح
+                                    </button>
+                                    <button onClick={() => setExternalSiteOpen(false)} className="bg-red-600 hover:bg-red-700 w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-lg border border-red-500">
+                                        <i className="fa-solid fa-xmark text-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {/* نافذة عرض الموقع */}
+                            <div className="flex-1 w-full bg-gray-100 relative overflow-hidden">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center z-0">
+                                    <i className="fa-solid fa-circle-notch fa-spin text-blue-900 text-3xl mb-2"></i>
+                                    <span className="text-blue-900 font-bold text-xs">جاري تحميل الخدمات...</span>
+                                </div>
+                                <iframe
+                                    src="https://faculty-of-commerce.netlify.app/"
+                                    className="w-full h-full border-0 absolute inset-0 z-10 bg-white"
+                                    title="موقع خدمات الطلاب"
+                                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+                                ></iframe>
+                            </div>
+                        </div>
+                    )}
 
                     {downloadItem && (
                         <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -817,8 +857,24 @@
                                     <HomeCard icon="fa-users-gear" label="الأنشطة" color="bg-green-600" onClick={() => navigate('activities')} />
                                     <HomeCard icon="fa-graduation-cap" label="التدريب" color="bg-orange-600" onClick={() => navigate('training')} />
                                     <HomeCard icon="fa-briefcase" label="الوظائف" color="bg-cyan-600" onClick={() => navigate('jobs')} />
-                                    <HomeCard icon="fa-map-location" label="دليل الطالب" color="bg-purple-600" onClick={() => navigate('guide')} />
+                                    <HomeCard icon="fa-map-location" label="دليل الطالب" color="bg-gray-600" onClick={() => navigate('guide')} />
                                     <HomeCard icon="fa-circle-info" label="من نحن" color="bg-gray-600" onClick={() => navigate('about')} />
+                                    
+                                    {/* بطاقة موقع الخدمات (بحجم بطاقتين) تفتح في المتصفح الداخلي */}
+                                    <div 
+                                        onClick={() => setExternalSiteOpen(true)}
+                                        className="col-span-2 md:col-span-2 bg-gradient-to-r from-blue-800 to-indigo-900 p-3 md:p-4 rounded-xl text-white flex items-center gap-3 shadow-md hover:shadow-lg cursor-pointer border border-blue-400/30 transition-all group"
+                                    >
+                                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center text-blue-900 shadow-inner flex-shrink-0 group-hover:scale-110 transition-transform">
+                                            <i className="fa-solid fa-graduation-cap text-lg md:text-xl"></i>
+                                        </div>
+                                        <div className="flex flex-col justify-center">
+                                            <h3 className="font-black text-xs md:text-sm drop-shadow-md leading-tight mb-1">موقع خدمات طلاب كلية تجارة الزقازيق</h3>
+                                            <p className="text-[9px] md:text-[11px] text-blue-200 font-bold bg-black/20 w-fit px-2 py-0.5 rounded-full">
+                                                اضغط لفتح الموقع
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
