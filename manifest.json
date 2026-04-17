@@ -1,0 +1,76 @@
+{
+  "id": "com.commerce.zagazig.app",
+  "name": "كلية التجارة جامعة الزقازيق",
+  "short_name": "تجارة الزقازيق",
+  "description": "المنصة التعليمية والاجتماعية الشاملة لطلاب كلية التجارة جامعة الزقازيق. توفر المحاضرات، المذكرات، جداول الامتحانات، الأنشطة الطلابية، وفرص التدريب والوظائف.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "background_color": "#eef2f6",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar",
+  "author": "شهاب طارق صلاح",
+  "categories":[
+    "education",
+    "social",
+    "productivity",
+    "utilities",
+    "books"
+  ],
+  "icons":[
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots":[
+    {
+      "src": "screenshot-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "الصفحة الرئيسية للتطبيق على الهاتف"
+    },
+    {
+      "src": "screenshot-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "واجهة التطبيق على أجهزة الكمبيوتر"
+    }
+  ],
+  "shortcuts":[
+    {
+      "name": "المحاضرات",
+      "short_name": "المحاضرات",
+      "description": "الذهاب مباشرة إلى قسم المحاضرات",
+      "url": "/?page=lectures",
+      "icons":[{ "src": "icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "المذكرات",
+      "short_name": "المذكرات",
+      "description": "الذهاب مباشرة إلى قسم المذكرات",
+      "url": "/?page=notes",
+      "icons":[{ "src": "icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "الأنشطة",
+      "short_name": "الأنشطة",
+      "description": "استكشاف الأنشطة الطلابية",
+      "url": "/?page=activities",
+      "icons":[{ "src": "icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
