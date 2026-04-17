@@ -37,24 +37,38 @@
             0% { opacity: 0; transform: translate(-50%, -20px); }
             100% { opacity: 1; transform: translate(-50%, 0); }
         }
-        .animate-toast { animation: slideDownFade 0.3s ease-out forwards; }
+        .animate-toast { animation: slideDownFade 0.15s ease-out forwards; }
 
-        /* Splash Screen Dark Blended Background */
-        .bg-splash-dark {
-            /* دمج لون الهيدر (الأزرق الداكن) مع الرصاصي اللامع */
+        /* شاشة التحميل الأصلية */
+        #native-splash {
+            position: fixed; inset: 0; z-index: 999999;
             background: linear-gradient(135deg, #1e3a8a 0%, #475569 100%);
-            position: relative;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.15s ease-in-out;
         }
-        .bg-splash-dark::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+        #native-splash::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 70%);
             pointer-events: none;
         }
     </style>
 </head>
 <body class="pb-20 lg:pb-0">
+    
+    <!-- شاشة التحميل الفورية -->
+    <div id="native-splash">
+        <div style="position:relative; z-index:10; display:flex; flex-direction:column; align-items:center;">
+            <div style="width:64px; height:64px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#1e3a8a; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); margin-bottom:16px;">
+                <i class="fa-solid fa-graduation-cap" style="font-size: 30px;"></i>
+            </div>
+            <h1 style="font-size: 12px; font-weight: 900; color: white; margin-bottom: 4px; letter-spacing: 1px;">أهلاً بكم</h1>
+            <p style="font-size: 10px; font-weight: 700; color: #d1d5db; display:flex; align-items:center; gap:6px; opacity: 0.9;">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                الرجاء انتظار التحميل...
+            </p>
+        </div>
+    </div>
+
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
@@ -82,27 +96,6 @@
         const UPLOAD_PRESET = 'my_public_preset';
         const ADMIN_UID = 'mEVbroYWf7cg68SL8CB2uUS8XhZ2';
 
-        // --- Loading Splash Screen Component ---
-        const SplashScreen = ({ isFading }) => {
-            return (
-                <div className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-splash-dark transition-opacity duration-700 ease-in-out ${isFading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                    <div className="relative flex flex-col items-center justify-center z-10">
-                        {/* اللوجو - ثابت بدون نبض */}
-                        <div className="relative w-16 h-16 bg-white rounded-full flex items-center justify-center text-blue-900 shadow-2xl mb-4">
-                            <i className="fa-solid fa-graduation-cap text-3xl"></i>
-                        </div>
-                        
-                        {/* النصوص المصغرة - بألوان فاتحة لتناسب الخلفية الداكنة */}
-                        <h1 className="text-xs font-black text-white mb-1 tracking-wider drop-shadow-md">أهلاً بكم</h1>
-                        <p className="text-[10px] font-bold text-gray-300 flex items-center gap-1.5 opacity-90">
-                            <i className="fa-solid fa-spinner fa-spin text-[10px]"></i>
-                            الرجاء انتظار التحميل...
-                        </p>
-                    </div>
-                </div>
-            );
-        };
-
         // --- Toast Component ---
         const Toast = ({ message, type }) => {
             if (!message) return null;
@@ -118,28 +111,41 @@
         };
 
         // --- Internal Preview Modal ---
-        const PreviewModal = ({ url, onClose }) => {
+        const PreviewModal = ({ previewData, onClose, onNavigate }) => {
             useEffect(() => {
-                if (url) document.body.style.overflow = 'hidden';
+                if (previewData.items.length > 0) document.body.style.overflow = 'hidden';
                 else document.body.style.overflow = 'auto';
                 return () => { document.body.style.overflow = 'auto'; };
-            }, [url]);
+            }, [previewData]);
 
-            if (!url) return null;
+            if (previewData.items.length === 0) return null;
 
-            const isPdf = url.toLowerCase().includes('.pdf');
+            const currentItem = previewData.items[previewData.index];
+            const isPdf = currentItem.url.toLowerCase().includes('.pdf');
+            const pdfViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(currentItem.url)}&embedded=true`;
 
             return (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-2 md:p-10 transition-opacity duration-300">
-                    <button onClick={onClose} className="absolute top-4 right-4 md:top-6 md:right-6 bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-red-700 transition-colors z-50 shadow-lg border-2 border-white">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-2 md:p-10 transition-opacity duration-75">
+                    <button onClick={onClose} className="absolute top-4 right-4 md:top-6 md:right-6 bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-red-700 transition-colors duration-75 z-50 shadow-lg border-2 border-white">
                         <i className="fa-solid fa-xmark text-xl"></i>
                     </button>
                     
                     <div className="w-full h-full max-w-6xl bg-black rounded-xl overflow-hidden relative flex items-center justify-center shadow-2xl">
                         {isPdf ? (
-                            <iframe src={`${url}#toolbar=0`} className="w-full h-full border-0 bg-white" title="PDF Preview"></iframe>
+                            <iframe src={pdfViewerUrl} className="w-full h-full border-0 bg-white" title="PDF Preview"></iframe>
                         ) : (
-                            <img src={url} alt="Preview" className="max-w-full max-h-full object-contain" />
+                            <img src={currentItem.url} alt="Preview" className="max-w-full max-h-full object-contain" />
+                        )}
+
+                        {previewData.items.length > 1 && (
+                            <>
+                                <button onClick={(e) => { e.stopPropagation(); onNavigate('prev'); }} className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/90 text-white w-12 h-12 rounded-full transition-colors duration-75 flex items-center justify-center">
+                                    <i className="fa-solid fa-chevron-left text-xl"></i>
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); onNavigate('next'); }} className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/90 text-white w-12 h-12 rounded-full transition-colors duration-75 flex items-center justify-center">
+                                    <i className="fa-solid fa-chevron-right text-xl"></i>
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
@@ -151,16 +157,28 @@
             const adRef = useRef(null);
             const[hasAd, setHasAd] = useState(false);
             useEffect(() => { if (adRef.current && adRef.current.innerHTML.trim() !== "") setHasAd(true); },[]);
-            return <div ref={adRef} className={`ad-container w-full transition-all duration-150 ${hasAd ? 'my-6 py-4 bg-gray-50 border' : 'h-0 overflow-hidden'}`}></div>;
+            return <div ref={adRef} className={`ad-container w-full transition-all duration-75 ${hasAd ? 'my-6 py-4 bg-gray-50 border' : 'h-0 overflow-hidden'}`}></div>;
         };
 
         // --- Dynamic Section Component ---
-        const SectionView = ({ title, icon, data, hideYearFilter = false, onBack, onPreview }) => {
+        const SectionView = ({ title, icon, data, hideYearFilter = false, showSystemFilter = false, onBack, onPreviewSingle }) => {
             const[filterYear, setFilterYear] = useState('الكل');
+            const[filterSystem, setFilterSystem] = useState('الكل'); // فلتر انتظام/انتساب الجديد
             const[visibleCount, setVisibleCount] = useState(10);
-            const years =['الكل', 'الفرقة الأولى', 'الفرقة الثانية', 'الفرقة الثالثة', 'الفرقة الرابعة'];
             
-            const filtered = data.filter(item => hideYearFilter || filterYear === 'الكل' || item.year === filterYear);
+            const years =['الكل', 'الفرقة الأولى', 'الفرقة الثانية', 'الفرقة الثالثة', 'الفرقة الرابعة'];
+            const systems =['الكل', 'انتظام', 'انتساب'];
+            
+            const filtered = data.filter(item => {
+                const matchYear = hideYearFilter || filterYear === 'الكل' || item.year === filterYear;
+                
+                // منطق فلترة النظام (إذا لم يكن للملف نظام محدد قديماً نعتبره "عام")
+                const itemSystem = item.studySystem || 'عام';
+                const matchSystem = !showSystemFilter || filterSystem === 'الكل' || itemSystem === 'عام' || itemSystem === filterSystem;
+                
+                return matchYear && matchSystem;
+            });
+            
             const visibleData = filtered.slice(0, visibleCount);
 
             const getThumbnail = (url) => {
@@ -192,41 +210,59 @@
             return (
                 <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex items-center gap-3 mb-4 border-b pb-3">
-                        <button onClick={onBack} className="text-gray-500 hover:text-blue-900 transition-colors duration-150 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+                        <button onClick={onBack} className="text-gray-500 hover:text-blue-900 transition-colors duration-75 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
                             <i className="fa-solid fa-arrow-right"></i>
                         </button>
                         <div className="text-blue-900 text-2xl"><i className={`fa-solid ${icon}`}></i></div>
                         <h2 className="text-lg md:text-xl font-bold text-gray-800">{title}</h2>
                     </div>
 
-                    {!hideYearFilter && (
-                        <div className="flex gap-1.5 overflow-x-auto mb-4 pb-2 sidebar-scroll">
-                            {years.map(y => (
-                                <button key={y} onClick={() => {setFilterYear(y); setVisibleCount(10);}} className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-colors duration-150 ${filterYear === y ? 'bg-blue-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                                    {y}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                    {/* فلاتر البحث */}
+                    <div className="mb-4">
+                        {!hideYearFilter && (
+                            <div className="flex gap-1.5 overflow-x-auto mb-2 pb-2 sidebar-scroll">
+                                {years.map(y => (
+                                    <button key={y} onClick={() => {setFilterYear(y); setVisibleCount(10);}} className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-colors duration-75 ${filterYear === y ? 'bg-blue-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                                        {y}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {showSystemFilter && (
+                            <div className="inline-flex bg-gray-100 p-1 rounded-xl">
+                                {systems.map(s => (
+                                    <button key={s} onClick={() => {setFilterSystem(s); setVisibleCount(10);}} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${filterSystem === s ? 'bg-white text-blue-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {visibleData.length === 0 ? (
                             <div className="col-span-full text-center py-10 text-gray-400">لا توجد بيانات متاحة حالياً.</div>
                         ) : (
                             visibleData.map(item => (
-                                <div key={item.id} className="p-3 border rounded-xl hover:shadow-md transition-shadow duration-150 flex flex-col sm:flex-row gap-4 group bg-gray-50">
-                                    <div className="w-full sm:w-24 h-32 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden border bg-white relative cursor-pointer" onClick={() => onPreview(item.fileUrl)}>
-                                        <img src={getThumbnail(item.fileUrl)} alt={item.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=File' }} />
-                                        {item.fileUrl?.endsWith('.pdf') && <div className="absolute top-1 right-1 bg-red-600 text-white text-[10px] px-1.5 rounded font-bold shadow">PDF</div>}
-                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                            <i className="fa-solid fa-expand text-white text-xl"></i>
+                                <div key={item.id} className="p-3 border rounded-xl hover:shadow-md transition-shadow duration-75 flex flex-col sm:flex-row gap-4 bg-gray-50 relative">
+                                    
+                                    {/* علامة توضح هل الملف انتظام أم انتساب أم عام */}
+                                    {showSystemFilter && item.studySystem && item.studySystem !== 'عام' && (
+                                        <div className="absolute top-0 left-0 bg-yellow-400 text-blue-900 text-[9px] font-black px-2 py-0.5 rounded-br-lg rounded-tl-xl z-10">
+                                            {item.studySystem}
                                         </div>
+                                    )}
+
+                                    <div className="w-full sm:w-24 h-32 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden border bg-white relative cursor-pointer" onClick={() => onPreviewSingle(item.fileUrl)}>
+                                        <img src={getThumbnail(item.fileUrl)} alt={item.title} loading="lazy" className="w-full h-full object-cover" onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=File' }} />
+                                        {item.fileUrl?.endsWith('.pdf') && <div className="absolute bottom-1 right-1 bg-red-600 text-white text-[10px] px-1.5 rounded font-bold shadow">PDF</div>}
                                     </div>
 
                                     <div className="flex-grow flex flex-col justify-between">
                                         <div>
                                             {!hideYearFilter && (
-                                                <div className="flex gap-2 mb-1">
+                                                <div className="flex gap-2 mb-1 mt-1 sm:mt-0">
                                                     <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{item.year}</span>
                                                 </div>
                                             )}
@@ -236,27 +272,27 @@
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             {item.fileUrl && (
                                                 <>
-                                                    <button onClick={() => onPreview(item.fileUrl)} className="flex-1 bg-blue-100 text-blue-900 text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-blue-200 transition-colors duration-150">
+                                                    <button onClick={() => onPreviewSingle(item.fileUrl)} className="flex-1 bg-blue-100 text-blue-900 text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-blue-200 transition-colors duration-75">
                                                         <i className="fa-solid fa-eye ml-1"></i> معاينة
                                                     </button>
-                                                    <a href={getDownloadUrl(item.fileUrl)} download target="_blank" className="flex-1 bg-blue-900 text-white text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-blue-800 transition-colors duration-150">
+                                                    <a href={getDownloadUrl(item.fileUrl)} download target="_blank" rel="noopener noreferrer" className="flex-1 bg-blue-900 text-white text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-blue-800 transition-colors duration-75">
                                                         <i className="fa-solid fa-download ml-1"></i> تحميل
                                                     </a>
                                                 </>
                                             )}
                                             
                                             {item.link && (
-                                                <a href={item.link} target="_blank" className="w-full bg-red-100 text-red-700 text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-red-200 transition-colors duration-150 mt-1">
+                                                <a href={item.link} target="_blank" className="w-full bg-red-100 text-red-700 text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-red-200 transition-colors duration-75 mt-1">
                                                     <i className="fa-brands fa-youtube ml-1"></i> عرض الرابط
                                                 </a>
                                             )}
 
                                             {item.phone && (
                                                 <div className="w-full flex gap-2 mt-1">
-                                                    <a href={formatWhatsApp(item.phone)} target="_blank" className="flex-1 bg-green-500 text-white text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-green-600 transition-colors duration-150">
+                                                    <a href={formatWhatsApp(item.phone)} target="_blank" className="flex-1 bg-green-500 text-white text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-green-600 transition-colors duration-75">
                                                         <i className="fa-brands fa-whatsapp ml-1"></i> واتساب
                                                     </a>
-                                                    <a href={`tel:${item.phone}`} className="flex-1 bg-gray-800 text-white text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-gray-900 transition-colors duration-150">
+                                                    <a href={`tel:${item.phone}`} className="flex-1 bg-gray-800 text-white text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-gray-900 transition-colors duration-75">
                                                         <i className="fa-solid fa-phone ml-1"></i> اتصال
                                                     </a>
                                                 </div>
@@ -270,7 +306,7 @@
                     
                     {visibleCount < filtered.length && (
                         <div className="text-center mt-6">
-                            <button onClick={() => setVisibleCount(prev => prev + 10)} className="bg-gray-200 text-gray-800 px-6 py-2 rounded-full font-bold text-sm hover:bg-gray-300 transition-colors duration-150">
+                            <button onClick={() => setVisibleCount(prev => prev + 10)} className="bg-gray-200 text-gray-800 px-6 py-2 rounded-full font-bold text-sm hover:bg-gray-300 transition-colors duration-75">
                                 عرض المزيد <i className="fa-solid fa-angle-down mr-1"></i>
                             </button>
                         </div>
@@ -283,24 +319,37 @@
             const [user, setUser] = useState(null);
             const[isAdmin, setIsAdmin] = useState(false);
             const[page, setPage] = useState('home');
-            const [materials, setMaterials] = useState([]);
+            const[materials, setMaterials] = useState([]);
             const[schedules, setSchedules] = useState([]);
-            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+            const[isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             
-            const [previewUrl, setPreviewUrl] = useState(null);
+            const[previewData, setPreviewData] = useState({ items:[], index: -1 });
             const[toast, setToast] = useState({ message: '', type: '' });
-
-            // Splash Screen States
-            const[showSplash, setShowSplash] = useState(true);
-            const [fadeSplash, setFadeSplash] = useState(false);
 
             const showToast = (message, type = 'info', duration = 3000) => {
                 setToast({ message, type });
                 if (duration) setTimeout(() => setToast({ message: '', type: '' }), duration);
             };
 
+            const openSinglePreview = (url) => {
+                if(url) setPreviewData({ items: [{ url }], index: 0 });
+            };
+
+            const openSliderPreview = (schedulesArray, clickedIndex) => {
+                const items = schedulesArray.map(s => ({ url: s.url }));
+                setPreviewData({ items, index: clickedIndex });
+            };
+
+            const handleModalNavigate = (direction) => {
+                setPreviewData(prev => {
+                    let newIdx = prev.index;
+                    if(direction === 'next') newIdx = (prev.index + 1) % prev.items.length;
+                    if(direction === 'prev') newIdx = (prev.index - 1 + prev.items.length) % prev.items.length;
+                    return { ...prev, index: newIdx };
+                });
+            };
+
             useEffect(() => {
-                // تجميد حركة الصفحة (Scroll Lock) أثناء عرض شاشة التحميل
                 document.body.style.overflow = 'hidden';
 
                 let isDataLoaded = false;
@@ -308,22 +357,22 @@
 
                 const checkReadyToHideSplash = () => {
                     if (isDataLoaded && minTimePassed) {
-                        setFadeSplash(true);
-                        // السماح بالتمرير مجدداً بمجرد بدء الشاشة في الاختفاء
-                        document.body.style.overflow = '';
-                        
-                        setTimeout(() => {
-                            setShowSplash(false);
-                            showToast("مرحبا بكم في خدمات كلية التجارة", "success", 2500);
-                        }, 700);
+                        const splash = document.getElementById('native-splash');
+                        if(splash) {
+                            splash.style.opacity = '0';
+                            document.body.style.overflow = '';
+                            setTimeout(() => {
+                                splash.remove();
+                                showToast("مرحبا بكم في خدمات كلية التجارة", "success", 2500);
+                            }, 150);
+                        }
                     }
                 };
 
-                // إجبار الشاشة على البقاء لثانية ونصف
                 setTimeout(() => {
                     minTimePassed = true;
                     checkReadyToHideSplash();
-                }, 1500);
+                }, 400);
 
                 onAuthStateChanged(auth, (u) => {
                     setUser(u);
@@ -340,11 +389,7 @@
                     checkReadyToHideSplash();
                 });
 
-                return () => { 
-                    unsubMat(); 
-                    unsubSch(); 
-                    document.body.style.overflow = ''; // تنظيف احتياطي
-                };
+                return () => { unsubMat(); unsubSch(); };
             },[]);
 
             const getByType = (type) => materials.filter(m => m.sectionType === type).sort((a,b) => b.createdAt - a.createdAt);
@@ -357,11 +402,14 @@
 
             return (
                 <div className="min-h-screen flex flex-col relative">
-                    {/* شاشة التحميل */}
-                    {showSplash && <SplashScreen isFading={fadeSplash} />}
 
                     <Toast message={toast.message} type={toast.type} />
-                    <PreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
+                    
+                    <PreviewModal 
+                        previewData={previewData} 
+                        onClose={() => setPreviewData({ items:[], index: -1 })} 
+                        onNavigate={handleModalNavigate}
+                    />
 
                     {/* Navbar */}
                     <nav className="bg-blue-900 text-white sticky top-0 z-40 shadow-xl border-b-2 border-yellow-500">
@@ -374,27 +422,30 @@
                             </div>
                             
                             <div className="hidden lg:flex items-center gap-1 text-sm">
-                                <button onClick={() => navigate('home')} className={`px-3 py-5 transition-colors duration-150 ${page === 'home' ? 'nav-link-active' : ''}`}>الرئيسية</button>
-                                <button onClick={() => navigate('lectures')} className={`px-3 py-5 transition-colors duration-150 ${page === 'lectures' ? 'nav-link-active' : ''}`}>المحاضرات</button>
-                                <button onClick={() => navigate('notes')} className={`px-3 py-5 transition-colors duration-150 ${page === 'notes' ? 'nav-link-active' : ''}`}>المذكرات</button>
-                                <button onClick={() => navigate('reviews')} className={`px-3 py-5 transition-colors duration-150 ${page === 'reviews' ? 'nav-link-active' : ''}`}>المراجعات</button>
-                                <button onClick={() => navigate('activities')} className={`px-3 py-5 transition-colors duration-150 ${page === 'activities' ? 'nav-link-active' : ''}`}>الأنشطة</button>
-                                <button onClick={() => navigate('training')} className={`px-3 py-5 transition-colors duration-150 ${page === 'training' ? 'nav-link-active' : ''}`}>التدريب</button>
-                                <button onClick={() => navigate('jobs')} className={`px-3 py-5 transition-colors duration-150 ${page === 'jobs' ? 'nav-link-active' : ''}`}>الوظائف</button>
-                                <button onClick={() => navigate(isAdmin ? 'adminDash' : 'admin')} className="mr-4 bg-yellow-500 text-blue-900 px-4 py-1 rounded-full font-bold text-xs hover:bg-yellow-400 transition-colors duration-150">
+                                <button onClick={() => navigate('home')} className={`px-3 py-5 transition-colors duration-75 ${page === 'home' ? 'nav-link-active' : ''}`}>الرئيسية</button>
+                                <button onClick={() => navigate('lectures')} className={`px-3 py-5 transition-colors duration-75 ${page === 'lectures' ? 'nav-link-active' : ''}`}>المحاضرات</button>
+                                <button onClick={() => navigate('notes')} className={`px-3 py-5 transition-colors duration-75 ${page === 'notes' ? 'nav-link-active' : ''}`}>المذكرات</button>
+                                <button onClick={() => navigate('reviews')} className={`px-3 py-5 transition-colors duration-75 ${page === 'reviews' ? 'nav-link-active' : ''}`}>المراجعات</button>
+                                <button onClick={() => navigate('activities')} className={`px-3 py-5 transition-colors duration-75 ${page === 'activities' ? 'nav-link-active' : ''}`}>الأنشطة</button>
+                                <button onClick={() => navigate('training')} className={`px-3 py-5 transition-colors duration-75 ${page === 'training' ? 'nav-link-active' : ''}`}>التدريب</button>
+                                <button onClick={() => navigate('jobs')} className={`px-3 py-5 transition-colors duration-75 ${page === 'jobs' ? 'nav-link-active' : ''}`}>الوظائف</button>
+                                
+                                {/* زر الإدارة/دخول المحسن في الهيدر */}
+                                <button onClick={() => navigate(isAdmin ? 'adminDash' : 'admin')} className="mr-4 bg-gradient-to-l from-yellow-400 to-yellow-500 text-blue-950 px-5 py-1.5 rounded-full font-black text-xs shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-150 flex items-center gap-2">
+                                    <i className={`fa-solid ${isAdmin ? 'fa-user-shield' : 'fa-right-to-bracket'}`}></i>
                                     {isAdmin ? 'الإدارة' : 'دخول'}
                                 </button>
                             </div>
 
                             <button className="lg:hidden text-2xl p-2" onClick={() => setIsMobileMenuOpen(true)}>
-                                <i className="fa-solid fa-bars-staggered"></i>
+                                <i className="fa-solid fa-bars"></i>
                             </button>
                         </div>
                     </nav>
 
                     {/* Mobile Sidebar */}
-                    <div className={`fixed inset-0 bg-black/60 z-[100] transition-opacity duration-150 lg:hidden ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
-                    <div className={`fixed top-0 right-0 h-full w-64 bg-white z-[101] shadow-2xl transform transition-transform duration-150 ease-in-out lg:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                    <div className={`fixed inset-0 bg-black/60 z-[100] transition-opacity duration-75 lg:hidden ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
+                    <div className={`fixed top-0 right-0 h-full w-64 bg-white z-[101] shadow-2xl transform transition-transform duration-75 ease-in-out lg:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                         <div className="bg-blue-900 text-white p-5 flex justify-between items-center">
                             <span className="font-bold text-lg">القائمة</span>
                             <button onClick={() => setIsMobileMenuOpen(false)} className="text-2xl"><i className="fa-solid fa-xmark"></i></button>
@@ -412,7 +463,11 @@
                             
                             <hr className="my-2 border-gray-200 w-full" />
                             
-                            <SidebarBtn icon="fa-user-shield" label={isAdmin ? 'لوحة الإدارة' : 'تسجيل الدخول'} active={page==='admin' || page==='adminDash'} onClick={() => navigate(isAdmin ? 'adminDash' : 'admin')} color="text-yellow-600" />
+                            {/* زر تسجيل الدخول المحسن في القائمة الجانبية */}
+                            <button onClick={() => {navigate(isAdmin ? 'adminDash' : 'admin'); setIsMobileMenuOpen(false);}} className="flex items-center justify-center gap-2 w-full p-3 rounded-xl transition-all duration-150 font-black text-sm bg-gradient-to-r from-yellow-400 to-yellow-500 text-blue-950 shadow-md mt-2 hover:scale-105">
+                                <i className={`fa-solid ${isAdmin ? 'fa-user-shield' : 'fa-right-to-bracket'}`}></i>
+                                {isAdmin ? 'لوحة الإدارة' : 'تسجيل الدخول'}
+                            </button>
                         </div>
                     </div>
 
@@ -430,7 +485,7 @@
                                     </div>
                                 </div>
 
-                                <HomeSlider schedules={schedules} onPreview={(url) => setPreviewUrl(url)} />
+                                <HomeSlider schedules={schedules} onPreviewSlider={openSliderPreview} />
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <HomeCard icon="fa-person-chalkboard" label="المحاضرات" color="bg-blue-600" onClick={() => navigate('lectures')} />
@@ -445,13 +500,15 @@
                             </div>
                         )}
 
-                        {page === 'lectures' && <SectionView title="قسم المحاضرات" icon="fa-person-chalkboard" data={getByType('lectures')} onBack={() => navigate('home')} onPreview={(url) => setPreviewUrl(url)} />}
-                        {page === 'notes' && <SectionView title="قسم المذكرات" icon="fa-book" data={getByType('notes')} onBack={() => navigate('home')} onPreview={(url) => setPreviewUrl(url)} />}
-                        {page === 'reviews' && <SectionView title="قسم المراجعات والامتحانات" icon="fa-file-shield" data={getByType('reviews')} onBack={() => navigate('home')} onPreview={(url) => setPreviewUrl(url)} />}
-                        {page === 'activities' && <SectionView title="معرض الأنشطة العام" icon="fa-users-gear" data={getByType('activities')} hideYearFilter={true} onBack={() => navigate('home')} onPreview={(url) => setPreviewUrl(url)} />}
-                        {page === 'training' && <SectionView title="التدريب والكورسات" icon="fa-graduation-cap" data={getByType('training')} onBack={() => navigate('home')} onPreview={(url) => setPreviewUrl(url)} />}
-                        {page === 'jobs' && <SectionView title="الوظائف المتاحة" icon="fa-briefcase" data={getByType('jobs')} hideYearFilter={true} onBack={() => navigate('home')} onPreview={(url) => setPreviewUrl(url)} />}
-                        {page === 'guide' && <SectionView title="دليل الطالب" icon="fa-map-location" data={getByType('guide')} onBack={() => navigate('home')} onPreview={(url) => setPreviewUrl(url)} />}
+                        {/* تمرير showSystemFilter للأقسام التي تحتاجها */}
+                        {page === 'lectures' && <SectionView title="قسم المحاضرات" icon="fa-person-chalkboard" data={getByType('lectures')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} />}
+                        {page === 'notes' && <SectionView title="قسم المذكرات" icon="fa-book" data={getByType('notes')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} />}
+                        {page === 'reviews' && <SectionView title="قسم المراجعات والامتحانات" icon="fa-file-shield" data={getByType('reviews')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} />}
+                        
+                        {page === 'activities' && <SectionView title="معرض الأنشطة العام" icon="fa-users-gear" data={getByType('activities')} hideYearFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} />}
+                        {page === 'training' && <SectionView title="التدريب والكورسات" icon="fa-graduation-cap" data={getByType('training')} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} />}
+                        {page === 'jobs' && <SectionView title="الوظائف المتاحة" icon="fa-briefcase" data={getByType('jobs')} hideYearFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} />}
+                        {page === 'guide' && <SectionView title="دليل الطالب" icon="fa-map-location" data={getByType('guide')} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} />}
                         
                         {page === 'about' && <AboutPage onBack={() => navigate('home')} />}
                         {page === 'admin' && !isAdmin && <AdminLogin onSuccess={() => { showToast("تم تسجيل الدخول بنجاح", "success"); setPage('adminDash'); }} showToast={showToast} />}
@@ -462,16 +519,16 @@
 
                     {/* Bottom Nav */}
                     <div className="lg:hidden fixed bottom-0 w-full bg-white border-t flex justify-around py-3 text-blue-900 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] rounded-t-2xl">
-                        <button onClick={() => navigate('home')} className={`flex flex-col items-center transition-colors duration-150 ${page === 'home' ? 'text-yellow-500' : 'text-blue-900'}`}>
+                        <button onClick={() => navigate('home')} className={`flex flex-col items-center transition-colors duration-75 ${page === 'home' ? 'text-yellow-500' : 'text-blue-900'}`}>
                             <i className="fa-solid fa-house text-lg"></i><span className="text-[10px] mt-1 font-bold">الرئيسية</span>
                         </button>
-                        <button onClick={() => navigate('lectures')} className={`flex flex-col items-center transition-colors duration-150 ${page === 'lectures' ? 'text-yellow-500' : 'text-blue-900'}`}>
+                        <button onClick={() => navigate('lectures')} className={`flex flex-col items-center transition-colors duration-75 ${page === 'lectures' ? 'text-yellow-500' : 'text-blue-900'}`}>
                             <i className="fa-solid fa-person-chalkboard text-lg"></i><span className="text-[10px] mt-1 font-bold">المحاضرات</span>
                         </button>
-                        <button onClick={() => navigate('notes')} className={`flex flex-col items-center transition-colors duration-150 ${page === 'notes' ? 'text-yellow-500' : 'text-blue-900'}`}>
+                        <button onClick={() => navigate('notes')} className={`flex flex-col items-center transition-colors duration-75 ${page === 'notes' ? 'text-yellow-500' : 'text-blue-900'}`}>
                             <i className="fa-solid fa-book text-lg"></i><span className="text-[10px] mt-1 font-bold">المذكرات</span>
                         </button>
-                        <button onClick={() => navigate('activities')} className={`flex flex-col items-center transition-colors duration-150 ${page === 'activities' ? 'text-yellow-500' : 'text-blue-900'}`}>
+                        <button onClick={() => navigate('activities')} className={`flex flex-col items-center transition-colors duration-75 ${page === 'activities' ? 'text-yellow-500' : 'text-blue-900'}`}>
                             <i className="fa-solid fa-users-gear text-lg"></i><span className="text-[10px] mt-1 font-bold">الأنشطة</span>
                         </button>
                     </div>
@@ -479,9 +536,9 @@
                     <footer className="bg-blue-950 text-white py-12 text-center mt-12">
                         <div className="container mx-auto px-4">
                             <div className="mb-6 flex justify-center gap-6 text-2xl">
-                                <a href="#" className="hover:text-yellow-500 transition-colors duration-150"><i className="fa-brands fa-facebook"></i></a>
-                                <a href="#" className="hover:text-yellow-500 transition-colors duration-150"><i className="fa-brands fa-instagram"></i></a>
-                                <a href="#" className="hover:text-yellow-500 transition-colors duration-150"><i className="fa-brands fa-telegram"></i></a>
+                                <a href="#" className="hover:text-yellow-500 transition-colors duration-75"><i className="fa-brands fa-facebook"></i></a>
+                                <a href="#" className="hover:text-yellow-500 transition-colors duration-75"><i className="fa-brands fa-instagram"></i></a>
+                                <a href="#" className="hover:text-yellow-500 transition-colors duration-75"><i className="fa-brands fa-telegram"></i></a>
                             </div>
                             <p className="font-bold mb-2">جميع الحقوق محفوظة &copy; {new Date().getFullYear()}</p>
                             <p className="text-sm opacity-60">تصميم وتطوير: شهاب طارق صلاح</p>
@@ -492,20 +549,20 @@
         };
 
         const SidebarBtn = ({ icon, label, active, onClick, color="text-gray-700" }) => (
-            <button onClick={onClick} className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-150 font-bold text-sm border-r-4 ${active ? 'bg-blue-50 text-blue-900 border-blue-900' : `border-transparent hover:bg-gray-50 ${color}`}`}>
+            <button onClick={onClick} className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-75 font-bold text-sm border-r-4 ${active ? 'bg-blue-50 text-blue-900 border-blue-900' : `border-transparent hover:bg-gray-50 ${color}`}`}>
                 <div className="w-6 flex justify-center"><i className={`fa-solid ${icon} text-lg`}></i></div>
                 <span className="text-right flex-1">{label}</span>
             </button>
         );
 
         const HomeCard = ({ icon, label, color, onClick }) => (
-            <div onClick={onClick} className={`${color} p-4 rounded-2xl text-white flex flex-col items-center justify-center gap-2 shadow-lg hover:scale-105 transition-transform duration-150 cursor-pointer`}>
+            <div onClick={onClick} className={`${color} p-4 rounded-2xl text-white flex flex-col items-center justify-center gap-2 shadow-lg hover:scale-105 transition-transform duration-75 cursor-pointer`}>
                 <i className={`fa-solid ${icon} text-2xl`}></i>
                 <span className="font-bold text-xs">{label}</span>
             </div>
         );
 
-        const HomeSlider = ({ schedules, onPreview }) => {
+        const HomeSlider = ({ schedules, onPreviewSlider }) => {
             const [idx, setIdx] = useState(0);
             if (!schedules.length) return null;
 
@@ -514,16 +571,13 @@
                     <div className="bg-blue-900 text-white text-center py-2 text-sm font-bold">
                         {schedules[idx].title || 'جداول المحاضرات الرسمية'}
                     </div>
-                    <div className="h-64 md:h-96 relative bg-gray-100 cursor-pointer" onClick={() => onPreview(schedules[idx].url)}>
+                    <div className="h-64 md:h-96 relative bg-gray-100 cursor-pointer" onClick={() => onPreviewSlider(schedules, idx)}>
                         <img src={schedules[idx].url} className="w-full h-full object-contain" />
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-                            <i className="fa-solid fa-expand text-white text-3xl drop-shadow-md"></i>
-                        </div>
-                        <button onClick={(e) => { e.stopPropagation(); setIdx(i => (i-1+schedules.length)%schedules.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-8 h-8 rounded-full transition-colors"><i className="fa-solid fa-chevron-left"></i></button>
-                        <button onClick={(e) => { e.stopPropagation(); setIdx(i => (i+1)%schedules.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-8 h-8 rounded-full transition-colors"><i className="fa-solid fa-chevron-right"></i></button>
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i-1+schedules.length)%schedules.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-8 h-8 rounded-full transition-colors z-20"><i className="fa-solid fa-chevron-left"></i></button>
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i+1)%schedules.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-8 h-8 rounded-full transition-colors z-20"><i className="fa-solid fa-chevron-right"></i></button>
                     </div>
                     <div className="flex justify-center gap-1 py-2 bg-white">
-                        {schedules.map((_, i) => <div key={i} className={`h-1.5 rounded-full transition-all duration-150 ${i === idx ? 'w-6 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>)}
+                        {schedules.map((_, i) => <div key={i} className={`h-1.5 rounded-full transition-all duration-75 ${i === idx ? 'w-6 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>)}
                     </div>
                 </div>
             );
@@ -543,9 +597,9 @@
             return (
                 <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl mt-10">
                     <h2 className="text-2xl font-bold mb-6 text-center text-blue-900">تسجيل دخول الإدارة</h2>
-                    <input type="email" placeholder="البريد" className="w-full mb-4 border p-3 rounded-xl" onChange={v=>setE(v.target.value)} />
-                    <input type="password" placeholder="كلمة المرور" className="w-full mb-6 border p-3 rounded-xl" onChange={v=>setP(v.target.value)} />
-                    <button onClick={handle} className="w-full bg-blue-900 text-white py-3 rounded-xl font-bold hover:bg-blue-800 transition-colors duration-150">دخول</button>
+                    <input type="email" placeholder="البريد" className="w-full mb-4 border p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-900" onChange={v=>setE(v.target.value)} />
+                    <input type="password" placeholder="كلمة المرور" className="w-full mb-6 border p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-900" onChange={v=>setP(v.target.value)} />
+                    <button onClick={handle} className="w-full bg-blue-900 text-white py-3 rounded-xl font-bold hover:bg-blue-800 transition-colors duration-75">دخول</button>
                 </div>
             );
         };
@@ -554,8 +608,9 @@
             const [title, setTitle] = useState('');
             const[sec, setSec] = useState('lectures');
             const[year, setYear] = useState('الفرقة الأولى');
+            const[studySystem, setStudySystem] = useState('عام'); // حقل نظام الدراسة الجديد
             const[link, setLink] = useState('');
-            const [phone, setPhone] = useState('');
+            const[phone, setPhone] = useState('');
             const[loading, setLoading] = useState(false);
             const[uploadProgress, setUploadProgress] = useState(0);
             const[uploadQueue, setUploadQueue] = useState([]);
@@ -596,6 +651,8 @@
                 setLoading(true);
                 setUploadProgress(0);
                 try {
+                    const finalStudySystem = (sec === 'lectures' || sec === 'notes' || sec === 'reviews') ? studySystem : 'عام';
+
                     if (uploadQueue.length > 0) {
                         for (let i=0; i<uploadQueue.length; i++) {
                             const item = uploadQueue[i];
@@ -628,6 +685,7 @@
                                 await addDoc(collection(db, 'materials'), { 
                                     title: item.title, fileUrl: fileUrl, sectionType: sec, 
                                     year: (sec === 'jobs' || sec === 'activities') ? 'عام' : year, 
+                                    studySystem: finalStudySystem,
                                     link: sec === 'training' ? link : null, phone: sec === 'jobs' ? phone : null,
                                     createdAt: Date.now(), department: 'عام'
                                 });
@@ -639,6 +697,7 @@
                         await addDoc(collection(db, 'materials'), { 
                             title: title, fileUrl: null, sectionType: sec, 
                             year: (sec === 'jobs' || sec === 'activities') ? 'عام' : year, 
+                            studySystem: finalStudySystem,
                             link: sec === 'training' ? link : null, phone: sec === 'jobs' ? phone : null,
                             createdAt: Date.now(), department: 'عام'
                         });
@@ -673,7 +732,7 @@
                 <div className="bg-white p-6 rounded-2xl shadow-xl space-y-8 relative">
                     <div className="flex justify-between items-center border-b pb-4">
                         <div className="flex items-center gap-3">
-                            <button onClick={onBack} className="text-gray-500 hover:text-blue-900 transition-colors duration-150 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center">
+                            <button onClick={onBack} className="text-gray-500 hover:text-blue-900 transition-colors duration-75 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center">
                                 <i className="fa-solid fa-arrow-right"></i>
                             </button>
                             <h2 className="text-xl font-bold">لوحة التحكم</h2>
@@ -682,7 +741,7 @@
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <select className="border p-2 rounded" value={sec} onChange={v=>setSec(v.target.value)}>
+                        <select className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-900" value={sec} onChange={v=>setSec(v.target.value)}>
                             <option value="lectures">قسم المحاضرات</option>
                             <option value="notes">قسم المذكرات</option>
                             <option value="reviews">قسم المراجعات</option>
@@ -694,13 +753,22 @@
                         </select>
 
                         {sec !== 'jobs' && sec !== 'activities' && sec !== 'schedule' && (
-                            <select className="border p-2 rounded" value={year} onChange={v=>setYear(v.target.value)}>
+                            <select className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-900" value={year} onChange={v=>setYear(v.target.value)}>
                                 <option>الفرقة الأولى</option><option>الفرقة الثانية</option><option>الفرقة الثالثة</option><option>الفرقة الرابعة</option>
                             </select>
                         )}
 
-                        {sec === 'training' && <input placeholder="رابط خارجي (مثال: يوتيوب)" value={link} className="border p-2 rounded" onChange={v=>setLink(v.target.value)} />}
-                        {sec === 'jobs' && <input placeholder="رقم الهاتف (للتواصل واتساب/اتصال)" value={phone} className="border p-2 rounded" onChange={v=>setPhone(v.target.value)} />}
+                        {/* حقل اختيار النظام الدراسي */}
+                        {(sec === 'lectures' || sec === 'notes' || sec === 'reviews') && (
+                            <select className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-900 col-span-1 md:col-span-2" value={studySystem} onChange={v=>setStudySystem(v.target.value)}>
+                                <option value="عام">عام (يظهر لطلاب الانتظام والانتساب)</option>
+                                <option value="انتظام">انتظام فقط</option>
+                                <option value="انتساب">انتساب فقط</option>
+                            </select>
+                        )}
+
+                        {sec === 'training' && <input placeholder="رابط خارجي (مثال: يوتيوب)" value={link} className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-900" onChange={v=>setLink(v.target.value)} />}
+                        {sec === 'jobs' && <input placeholder="رقم الهاتف (للتواصل واتساب/اتصال)" value={phone} className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-900" onChange={v=>setPhone(v.target.value)} />}
 
                         <div className="flex flex-col col-span-1 md:col-span-2 border-t pt-4 mt-2">
                             <label className="text-sm font-bold text-blue-900 mb-2">اختر الملفات (يمكنك تحديد أكثر من ملف):</label>
@@ -708,7 +776,7 @@
                         </div>
 
                         {uploadQueue.length === 0 && (
-                            <input placeholder="العنوان (اسم الملف أو الوظيفة)" value={title} className="border p-2 rounded col-span-1 md:col-span-2" onChange={v=>setTitle(v.target.value)} />
+                            <input placeholder="العنوان (اسم الملف أو الوظيفة)" value={title} className="border p-2 rounded col-span-1 md:col-span-2 focus:outline-none focus:ring-2 focus:ring-blue-900" onChange={v=>setTitle(v.target.value)} />
                         )}
 
                         {uploadQueue.length > 0 && (
@@ -717,14 +785,14 @@
                                 {uploadQueue.map((item, idx) => (
                                     <div key={idx} className="flex flex-col sm:flex-row items-center gap-2 bg-white p-2 rounded border">
                                         <span className="text-xs text-gray-500 w-full sm:w-1/3 truncate" dir="ltr">{item.file.name}</span>
-                                        <input className="border p-2 rounded w-full sm:w-2/3 text-sm" value={item.title} placeholder="اكتب العنوان أو الوصف هنا..." onChange={(e) => { const newQ = [...uploadQueue]; newQ[idx].title = e.target.value; setUploadQueue(newQ); }} />
+                                        <input className="border p-2 rounded w-full sm:w-2/3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" value={item.title} placeholder="اكتب العنوان أو الوصف هنا..." onChange={(e) => { const newQ = [...uploadQueue]; newQ[idx].title = e.target.value; setUploadQueue(newQ); }} />
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    <button onClick={upload} disabled={loading} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition-colors duration-150 flex justify-center items-center gap-2">
+                    <button onClick={upload} disabled={loading} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition-colors duration-75 flex justify-center items-center gap-2">
                         {loading ? (
                             <>
                                 <i className="fa-solid fa-circle-notch fa-spin"></i>
@@ -738,14 +806,18 @@
                         <div className="space-y-2 max-h-64 overflow-y-auto sidebar-scroll">
                             {materials.map(m => (
                                 <div key={m.id} className="flex justify-between items-center p-3 bg-gray-50 border rounded-lg text-sm">
-                                    <span className="font-bold line-clamp-1">{m.title} <span className="text-xs text-gray-400 font-normal">({m.sectionType})</span></span>
-                                    <button onClick={()=>requestDelete('materials', m.id)} className="text-red-500 hover:text-red-700 bg-red-100 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150"><i className="fa-solid fa-trash"></i></button>
+                                    <span className="font-bold line-clamp-1">
+                                        {m.title} 
+                                        <span className="text-xs text-gray-400 font-normal mr-1">({m.sectionType})</span>
+                                        {m.studySystem && m.studySystem !== 'عام' && <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 rounded mr-2">{m.studySystem}</span>}
+                                    </span>
+                                    <button onClick={()=>requestDelete('materials', m.id)} className="text-red-500 hover:text-red-700 bg-red-100 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-75"><i className="fa-solid fa-trash"></i></button>
                                 </div>
                             ))}
                             {schedules.map(s => (
                                 <div key={s.id} className="flex justify-between items-center p-3 bg-yellow-50 border rounded-lg text-sm">
                                     <span className="font-bold line-clamp-1">{s.title} <span className="text-xs text-gray-400 font-normal">(سلايدر)</span></span>
-                                    <button onClick={()=>requestDelete('schedules', s.id)} className="text-red-500 hover:text-red-700 bg-red-100 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150"><i className="fa-solid fa-trash"></i></button>
+                                    <button onClick={()=>requestDelete('schedules', s.id)} className="text-red-500 hover:text-red-700 bg-red-100 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-75"><i className="fa-solid fa-trash"></i></button>
                                 </div>
                             ))}
                         </div>
@@ -774,7 +846,7 @@
         const AboutPage = ({ onBack }) => (
             <div className="bg-white p-8 rounded-2xl shadow-lg leading-relaxed">
                 <div className="flex items-center gap-3 mb-4 border-b pb-3">
-                    <button onClick={onBack} className="text-gray-500 hover:text-blue-900 transition-colors duration-150 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+                    <button onClick={onBack} className="text-gray-500 hover:text-blue-900 transition-colors duration-75 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
                         <i className="fa-solid fa-arrow-right"></i>
                     </button>
                     <h2 className="text-2xl font-bold text-blue-900">من نحن؟</h2>
