@@ -39,6 +39,13 @@
         }
         .animate-toast { animation: slideDownFade 0.15s ease-out forwards; }
 
+        /* تأثير الظهور السلس للعناصر لمنع الإحساس باللاج */
+        @keyframes fadeInItem {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeInItem 0.2s ease-out forwards; }
+
         /* شاشة التحميل الأصلية */
         #native-splash {
             position: fixed; inset: 0; z-index: 999999;
@@ -116,7 +123,7 @@
                 if (previewData.items.length > 0) document.body.style.overflow = 'hidden';
                 else document.body.style.overflow = 'auto';
                 return () => { document.body.style.overflow = 'auto'; };
-            }, [previewData]);
+            },[previewData]);
 
             if (previewData.items.length === 0) return null;
 
@@ -197,9 +204,7 @@
             };
 
             return (
-                // تم تصغير الحشو (Padding) هنا
                 <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-100">
-                    {/* تم تصغير الهيدر والمسافات والخطوط */}
                     <div className="flex items-center gap-2 mb-3 border-b pb-2">
                         <button onClick={onBack} className="text-gray-500 hover:text-blue-900 transition-colors duration-75 bg-gray-100 hover:bg-gray-200 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0">
                             <i className="fa-solid fa-arrow-right text-sm"></i>
@@ -208,7 +213,6 @@
                         <h2 className="text-base md:text-lg font-bold text-gray-800">{title}</h2>
                     </div>
 
-                    {/* فلاتر البحث - تم تصغير المسافات */}
                     <div className="mb-3">
                         {!hideYearFilter && (
                             <div className="flex gap-1.5 overflow-x-auto mb-2 pb-1 sidebar-scroll">
@@ -221,9 +225,10 @@
                         )}
 
                         {showSystemFilter && (
-                            <div className="inline-flex bg-gray-100 p-1 rounded-xl">
+                            <div className="flex gap-1.5 overflow-x-auto pb-1 sidebar-scroll">
                                 {systems.map(s => (
-                                    <button key={s} onClick={() => {setFilterSystem(s); setVisibleCount(10);}} className={`px-4 py-1 rounded-lg text-[11px] font-bold transition-all duration-150 ${filterSystem === s ? 'bg-white text-blue-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+                                    /* تم توحيد لون الزر النشط مع فلتر المراحل */
+                                    <button key={s} onClick={() => {setFilterSystem(s); setVisibleCount(10);}} className={`whitespace-nowrap px-4 py-1 rounded-full text-[11px] font-bold transition-all duration-150 ${filterSystem === s ? 'bg-blue-900 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                                         {s}
                                     </button>
                                 ))}
@@ -236,7 +241,8 @@
                             <div className="col-span-full text-center py-10 text-gray-400">لا توجد بيانات متاحة حالياً.</div>
                         ) : (
                             visibleData.map(item => (
-                                <div key={item.id} className="p-3 border rounded-xl hover:shadow-md transition-shadow duration-75 flex flex-col sm:flex-row gap-4 bg-gray-50 relative">
+                                /* تمت إضافة animate-fade-in لمنع الإحساس باللاج عند التنقل */
+                                <div key={item.id} className="p-3 border rounded-xl hover:shadow-md transition-shadow duration-75 flex flex-col sm:flex-row gap-4 bg-gray-50 relative animate-fade-in">
                                     
                                     {showSystemFilter && item.studySystem && item.studySystem !== 'عام' && (
                                         <div className="absolute top-0 left-0 bg-yellow-400 text-blue-900 text-[9px] font-black px-2 py-0.5 rounded-br-lg rounded-tl-xl z-10">
@@ -265,7 +271,6 @@
                                                     <button onClick={() => onPreviewSingle(item.fileUrl)} className="flex-1 bg-blue-100 text-blue-900 text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-blue-200 transition-colors duration-75">
                                                         <i className="fa-solid fa-eye ml-1"></i> معاينة
                                                     </button>
-                                                    {/* استدعاء دالة طلب التحميل بدلاً من فتح الرابط */}
                                                     <button onClick={() => onRequestDownload(item.fileUrl, item.title)} className="flex-1 bg-blue-900 text-white text-xs py-1.5 px-2 rounded-lg font-bold text-center hover:bg-blue-800 transition-colors duration-75">
                                                         <i className="fa-solid fa-download ml-1"></i> تحميل
                                                     </button>
@@ -315,7 +320,7 @@
             const[isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             
             const[previewData, setPreviewData] = useState({ items:[], index: -1 });
-            const[downloadItem, setDownloadItem] = useState(null); // حالة نافذة تأكيد التحميل
+            const[downloadItem, setDownloadItem] = useState(null); 
 
             const[toast, setToast] = useState({ message: '', type: '' });
 
@@ -342,19 +347,16 @@
                 });
             };
 
-            // دالة تنظيف وتسريع الموقع
             const handleCleanSite = () => {
                 localStorage.clear();
                 sessionStorage.clear();
                 window.location.reload(true);
             };
 
-            // دالة بدء طلب التحميل (إظهار النافذة)
             const handleRequestDownload = (url, title) => {
                 setDownloadItem({ url, title });
             };
 
-            // دالة تنفيذ التحميل الفعلي (إخفاء الرابط وتحميل كـ Blob)
             const executeDownload = async () => {
                 if (!downloadItem) return;
                 const { url, title } = downloadItem;
@@ -386,7 +388,6 @@
                     
                     showToast("بدأ التحميل بنجاح", "success");
                 } catch (error) {
-                    // حل بديل في حال منع المتصفح الـ Fetch
                     const dlUrl = url.includes('cloudinary.com') ? url.replace('/upload/', '/upload/fl_attachment/') : url;
                     const link = document.createElement('a');
                     link.href = dlUrl;
@@ -420,7 +421,7 @@
                 setTimeout(() => {
                     minTimePassed = true;
                     checkReadyToHideSplash();
-                }, 200); // أقصى سرعة ممكنة
+                }, 200); 
 
                 onAuthStateChanged(auth, (u) => {
                     setUser(u);
@@ -459,7 +460,6 @@
                         onNavigate={handleModalNavigate}
                     />
 
-                    {/* نافذة تأكيد التحميل */}
                     {downloadItem && (
                         <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-75">
                             <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
@@ -476,7 +476,6 @@
                         </div>
                     )}
 
-                    {/* Navbar - تم تعديل الحاوية لتكون بعرض الشاشة بالكامل */}
                     <nav className="bg-blue-900 text-white sticky top-0 z-40 shadow-xl border-b-2 border-yellow-500">
                         <div className="w-full px-4 lg:px-8 flex justify-between items-center h-16">
                             <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('home')}>
@@ -507,7 +506,6 @@
                         </div>
                     </nav>
 
-                    {/* Mobile Sidebar */}
                     <div className={`fixed inset-0 bg-black/60 z-[100] transition-opacity duration-75 lg:hidden ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
                     <div className={`fixed top-0 right-0 h-full w-64 bg-white z-[101] shadow-2xl transform transition-transform duration-75 ease-in-out lg:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                         <div className="bg-blue-900 text-white p-5 flex justify-between items-center">
@@ -527,8 +525,11 @@
                             
                             <hr className="my-2 border-gray-200 w-full" />
                             
-                            {/* زر تنظيف الموقع */}
-                            <SidebarBtn icon="fa-broom" label="تنظيف وتسريع الموقع" active={false} onClick={handleCleanSite} color="text-green-600" />
+                            {/* زر تنظيف الموقع المحسن */}
+                            <button onClick={handleCleanSite} className="flex items-center justify-center gap-2 w-full p-3 rounded-xl transition-all duration-150 font-black text-sm bg-gradient-to-r from-emerald-400 to-teal-500 text-white shadow-md mt-2 hover:scale-105">
+                                <i className="fa-solid fa-broom"></i>
+                                تنظيف وتسريع الموقع
+                            </button>
 
                             <button onClick={() => {navigate(isAdmin ? 'adminDash' : 'admin'); setIsMobileMenuOpen(false);}} className="flex items-center justify-center gap-2 w-full p-3 rounded-xl transition-all duration-150 font-black text-sm bg-gradient-to-r from-yellow-400 to-yellow-500 text-blue-950 shadow-md mt-2 hover:scale-105">
                                 <i className={`fa-solid ${isAdmin ? 'fa-user-shield' : 'fa-right-to-bracket'}`}></i>
@@ -537,7 +538,6 @@
                         </div>
                     </div>
 
-                    {/* Main Content */}
                     <main className="flex-grow container mx-auto px-4 py-6 max-w-5xl">
                         <AdSlot id="top-ad" />
 
@@ -566,7 +566,6 @@
                             </div>
                         )}
 
-                        {/* تمرير دالة طلب التحميل لكل الأقسام */}
                         {page === 'lectures' && <SectionView title="قسم المحاضرات" icon="fa-person-chalkboard" data={getByType('lectures')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} />}
                         {page === 'notes' && <SectionView title="قسم المذكرات" icon="fa-book" data={getByType('notes')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} />}
                         {page === 'reviews' && <SectionView title="قسم المراجعات والامتحانات" icon="fa-file-shield" data={getByType('reviews')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} />}
@@ -583,7 +582,6 @@
                         <AdSlot id="bottom-ad" />
                     </main>
 
-                    {/* Bottom Nav */}
                     <div className="lg:hidden fixed bottom-0 w-full bg-white border-t flex justify-around py-3 text-blue-900 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] rounded-t-2xl">
                         <button onClick={() => navigate('home')} className={`flex flex-col items-center transition-colors duration-75 ${page === 'home' ? 'text-yellow-500' : 'text-blue-900'}`}>
                             <i className="fa-solid fa-house text-lg"></i><span className="text-[10px] mt-1 font-bold">الرئيسية</span>
@@ -599,7 +597,6 @@
                         </button>
                     </div>
 
-                    {/* الفوتر يظهر فقط في الصفحة الرئيسية ومن نحن */}
                     { (page === 'home' || page === 'about') && (
                         <footer className="bg-blue-950 text-white py-12 text-center mt-12">
                             <div className="container mx-auto px-4">
