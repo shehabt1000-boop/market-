@@ -662,7 +662,7 @@
                 });
 
                 // تطبيق حماية الذاكرة (جلب أحدث 500 ملف فقط بدلاً من كل قاعدة البيانات)
-                const qMat = query(collection(db, 'materials'), orderBy('createdAt', 'desc'), limit(6));
+                const qMat = query(collection(db, 'materials'), orderBy('createdAt', 'desc'), limit(100));
                 const unsubMat = onSnapshot(qMat, (snap) => {
                     setMaterials(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                 }, (error) => {
