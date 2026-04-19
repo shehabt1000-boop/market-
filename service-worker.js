@@ -1,7 +1,7 @@
-// قم بتغيير اسم الكاش لضمان تحديث الـ Service Worker عند المستخدمين
-const CACHE_NAME = 'commerce-zagazig-v3';
+// قم بتغيير رقم الإصدار عند عمل أي تحديث كبير في الموقع
+const CACHE_NAME = 'commerce-zagazig-v4';
 
-// استخدام المسارات النسبية (إضافة نقطة)
+// الملفات الأساسية التي سيتم تخزينها فور فتح الموقع
 const APP_SHELL =[
   './',
   './index.html',
@@ -10,8 +10,9 @@ const APP_SHELL =[
   './icon-512x512.png'
 ];
 
+// 1. التثبيت (Install) - تحميل الملفات الأساسية
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  self.skipWaiting(); // تفعيل التحديث فوراً
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[Service Worker] تم حفظ ملفات التطبيق الأساسية بنجاح');
@@ -20,6 +21,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// 2. التفعيل (Activate) - مسح الكاش القديم لتوفير المساحة
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -35,36 +37,49 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// 3. الجلب (Fetch) - استراتيجية (Stale-While-Revalidate) للسرعة الصاروخية
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || event.request.url.includes('firestore.googleapis.com')) {
+  const request = event.request;
+
+  // تجاهل طلبات قواعد البيانات (Firebase) لأن لها نظام تخزين خاص بها قمنا بتفعيله
+  if (request.method !== 'GET' || request.url.includes('firestore.googleapis.com') || request.url.includes('google.com')) {
     return;
   }
 
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        const url = new URL(event.request.url);
-        // التخزين في الكاش إذا كان الملف ضمن الـ APP_SHELL
-        if (APP_SHELL.some(path => url.pathname.endsWith(path.replace('./', '/')))) {
-          const responseClone = networkResponse.clone();
+    caches.match(request).then((cachedResponse) => {
+      
+      // إذا كان الملف موجوداً في الذاكرة، اعرضه فوراً للمستخدم (سرعة فائقة)
+      if (cachedResponse) {
+        // في الخلفية: قم بجلب النسخة الأحدث من الإنترنت لتحديث الذاكرة للمرة القادمة
+        event.waitUntil(
+          fetch(request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, networkResponse.clone());
+              });
+            }
+          }).catch(() => { /* تجاهل الخطأ إذا كان أوفلاين */ })
+        );
+        return cachedResponse;
+      }
+
+      // إذا لم يكن الملف في الذاكرة، اجلبه من الإنترنت
+      return fetch(request).then((networkResponse) => {
+        // احفظ نسخة منه في الذاكرة لتسريع فتحه في المرات القادمة
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
+            cache.put(request, responseToCache);
           });
         }
         return networkResponse;
-      })
-      .catch(async () => {
-        console.log('[Service Worker] أنت الآن في وضع عدم الاتصال (Offline).');
-
-        const cachedResponse = await caches.match(event.request);
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        // استخدام المسار النسبي هنا أيضاً
-        if (event.request.mode === 'navigate') {
+      }).catch(() => {
+        // إذا فشل الإنترنت تماماً وكان المستخدم يحاول فتح صفحة، وجهه للصفحة الرئيسية المحفوظة
+        if (request.mode === 'navigate') {
           return caches.match('./index.html');
         }
-      })
+      });
+    })
   );
 });
