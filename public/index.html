@@ -38,7 +38,7 @@
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- بيانات المعاينة (Meta Tags for Social Media) -->
+    <!-- بيانات المعاينة -->
     <meta property="og:title" content="كلية التجارة جامعة الزقازيق | الموقع التعليمي">
     <meta property="og:description" content="المنصة التعليمية الشاملة لطلاب كلية التجارة جامعة الزقازيق - محاضرات، مذكرات، جداول، وأنشطة طلابية.">
     <meta property="og:image" content="https://res.cloudinary.com/dsxrjmcxs/image/upload/c_fill,g_auto,w_1364,h_768,q_auto:eco,f_auto/v1776437104/sm5iuilfl3r1fkmg7jyh.png">
@@ -49,7 +49,7 @@
         body { font-family: 'Cairo', sans-serif; background-color: #eef2f6; overflow-x: hidden; }
 
         /* تسريع استجابة اللمس على الموبايل وإلغاء التأخير الزمني */
-        button, a, select, input { touch-action: manipulation; }
+        button, a, select, input, .optimized-card { touch-action: manipulation; }
 
         .ad-container:empty { display: none !important; }
         .nav-link-active { border-bottom: 3px solid #fbbf24; color: #fbbf24 !important; }
@@ -59,18 +59,9 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* إيقاف جميع الرسوم المتحركة ليكون الموقع لحظي (ماعدا تأثير الهيكل النبضي) */
+        /* إيقاف جميع الرسوم المتحركة ليكون الموقع لحظي */
         * {
             transition: none !important;
-        }
-
-        /* حركة خفيفة لهيكل التحميل */
-        @keyframes custom-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .7; }
-        }
-        .animate-pulse-fast {
-            animation: custom-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
         }
 
         .optimized-card {
@@ -86,7 +77,7 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useRef, useMemo, useCallback, startTransition } from 'react';
+        import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
@@ -165,6 +156,8 @@
             if (previewData.items.length === 0) return null;
 
             const currentItem = previewData.items[previewData.index];
+            if (!currentItem || !currentItem.url) return null;
+            
             const isPdf = currentItem.url.toLowerCase().includes('.pdf');
             const isVid = isVideoUrl(currentItem.url);
             const pdfViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(currentItem.url)}&embedded=true`;
@@ -271,17 +264,19 @@
 
             const handleShareCard = async (e, item) => {
                 e.stopPropagation();
-                const url = new URL(window.location.origin + window.location.pathname);
-                url.searchParams.set('p', type);
-                url.searchParams.set('i', item.id);
                 try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('p', type);
+                    url.searchParams.set('i', item.id);
                     if (navigator.share) {
                         await navigator.share({ title: item.title, text: `شاهد: ${item.title}`, url: url.toString() });
                     } else {
                         await navigator.clipboard.writeText(url.toString());
                         showToast("تم نسخ رابط الملف", "success");
                     }
-                } catch (e) {}
+                } catch (err) {
+                    console.error(err);
+                }
             };
 
             let gridClass = "grid gap-3 md:gap-4 ";
@@ -477,22 +472,22 @@
             );
         });
 
-        // مكون السلايدر المحدث مع عرض "الهيكل" أثناء التحميل
+        // السلايدر المحدث: الهيكل يطابق الشكل النهائي تماماً بدون نبض
         const HomeSlider = React.memo(({ schedules, onPreviewSlider }) => {
             const[idx, setIdx] = useState(0);
 
-            // عرض الهيكل (Skeleton) إذا كانت البيانات قيد التحميل
             if (!schedules || schedules.length === 0) {
                 return (
-                    <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 animate-pulse-fast">
-                        <div className="bg-blue-900/50 text-transparent text-center py-1.5 md:py-2 text-xs md:text-sm font-bold border-b border-yellow-500/50">
-                            جاري التحميل...
+                    <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 bg-gray-100">
+                        <div className="bg-blue-900 text-white text-center py-1.5 md:py-2 text-xs md:text-sm font-bold border-b border-yellow-500 min-h-[28px] md:min-h-[36px]">
+                            {"\u00A0"}
                         </div>
-                        <div className="h-40 md:h-72 bg-gray-200 w-full flex items-center justify-center">
-                            <i className="fa-regular fa-image text-gray-400 text-4xl"></i>
+                        <div className="h-40 md:h-72 relative overflow-hidden flex items-center justify-center">
+                            <div className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white w-7 h-7 rounded-full z-20 flex items-center justify-center opacity-50"><i className="fa-solid fa-chevron-left text-xs"></i></div>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white w-7 h-7 rounded-full z-20 flex items-center justify-center opacity-50"><i className="fa-solid fa-chevron-right text-xs"></i></div>
                         </div>
                         <div className="flex justify-center gap-1 py-1.5 bg-gray-50 border-t border-gray-100">
-                            <div className="h-1 rounded-full w-5 bg-gray-300"></div>
+                            <div className="h-1 rounded-full w-5 bg-blue-900/30"></div>
                             <div className="h-1 rounded-full w-1.5 bg-gray-300"></div>
                         </div>
                     </div>
@@ -501,7 +496,7 @@
 
             return (
                 <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 group bg-gray-100">
-                    <div className="bg-blue-900 text-white text-center py-1.5 md:py-2 text-xs md:text-sm font-bold border-b border-yellow-500">
+                    <div className="bg-blue-900 text-white text-center py-1.5 md:py-2 text-xs md:text-sm font-bold border-b border-yellow-500 min-h-[28px] md:min-h-[36px]">
                         {schedules[idx].title || 'جداول المحاضرات الرسمية'}
                     </div>
                     <div className="h-40 md:h-72 relative cursor-pointer overflow-hidden flex items-center justify-center" onClick={() => onPreviewSlider(schedules, idx)}>
@@ -545,6 +540,15 @@
             
             const[externalSiteOpen, setExternalSiteOpen] = useState(false);
             const[iframeLoading, setIframeLoading] = useState(true);
+
+            // مرجع لحفظ أماكن النزول (Scroll Position) لكل صفحة
+            const scrollPositions = useRef({});
+            const currentPageRef = useRef(page);
+
+            // تحديث المرجع بالصفحة الحالية دائماً
+            useEffect(() => {
+                currentPageRef.current = page;
+            },[page]);
 
             const showToast = useCallback((message, type = 'info', duration = 2500) => {
                 setToast({ message, type });
@@ -620,52 +624,99 @@
                 }
             };
 
+            // دالة التنقل المحمية والمحدثة
+            const navigate = useCallback((pg) => {
+                try {
+                    setIsMobileMenuOpen(false);
+                    setHighlightedItemId(null);
+
+                    // حفظ مكان النزول للصفحة الحالية قبل المغادرة
+                    if (currentPageRef.current) {
+                        scrollPositions.current[currentPageRef.current] = window.scrollY;
+                    }
+
+                    // تحديث الرابط في المتصفح لدعم زر الرجوع
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('p', pg);
+                    url.searchParams.delete('i');
+                    url.searchParams.delete('page');
+                    url.searchParams.delete('item');
+                    window.history.pushState({ page: pg }, '', url.toString());
+
+                    // الانتقال الفوري
+                    setPage(pg);
+
+                    // استعادة مكان النزول للصفحة الجديدة أو الصعود للأعلى
+                    setTimeout(() => {
+                        const topPos = scrollPositions.current[pg] !== undefined ? scrollPositions.current[pg] : 0;
+                        window.scrollTo({ top: topPos, behavior: 'auto' });
+                    }, 10);
+                } catch (err) {
+                    console.error("Navigation Error:", err);
+                    // في حالة حدوث أي خطأ في المتصفح، يتم الانتقال بأمان
+                    setPage(pg);
+                    window.scrollTo(0, 0);
+                }
+            },[]);
+
+            // دالة الرجوع المضمونة للأقسام (تعود للرئيسية دائماً)
+            const goBack = useCallback(() => {
+                navigate('home');
+            }, [navigate]);
+
+            // التأثير الأساسي (يعمل مرة واحدة فقط عند فتح الموقع)
             useEffect(() => {
-                // إظهار الترحيب بعد 1.5 ثانية من تحميل الموقع لكي لا يغطي على الواجهة فوراً
+                // إشعار الترحيب الجديد
                 const welcomeTimer = setTimeout(() => {
-                    showToast("مرحباً بكم في موقعي", "success", 3000);
+                    showToast("أهلاً بكم في منصتي التعليمية", "success", 3000);
                 }, 1500);
 
-                const params = new URLSearchParams(window.location.search);
-                const pageParam = params.get('page') || params.get('p');
-                const itemParam = params.get('item') || params.get('i');
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const pageParam = params.get('page') || params.get('p');
+                    const itemParam = params.get('item') || params.get('i');
 
-                const resolveYear = (val) => {
-                    if(!val) return 'اختار الفرقة';
-                    if(val === '1') return 'الفرقة الأولى';
-                    if(val === '2') return 'الفرقة الثانية';
-                    if(val === '3') return 'الفرقة الثالثة';
-                    if(val === '4') return 'الفرقة الرابعة';
-                    if(val === 'all') return 'كل الفرق';
-                    if(val.includes('الفرقة') || val === 'كل الفرق') return val; 
-                    return 'اختار الفرقة';
-                };
-                const resolveSystem = (val) => {
-                    if(!val) return 'اختار النظام';
-                    if(val === 'r') return 'انتظام';
-                    if(val === 'a') return 'انتساب';
-                    if(val === 'انتظام' || val === 'انتساب') return val; 
-                    return 'اختار النظام';
-                };
+                    const resolveYear = (val) => {
+                        if(!val) return 'اختار الفرقة';
+                        if(val === '1') return 'الفرقة الأولى';
+                        if(val === '2') return 'الفرقة الثانية';
+                        if(val === '3') return 'الفرقة الثالثة';
+                        if(val === '4') return 'الفرقة الرابعة';
+                        if(val === 'all') return 'كل الفرق';
+                        if(val.includes('الفرقة') || val === 'كل الفرق') return val; 
+                        return 'اختار الفرقة';
+                    };
+                    const resolveSystem = (val) => {
+                        if(!val) return 'اختار النظام';
+                        if(val === 'r') return 'انتظام';
+                        if(val === 'a') return 'انتساب';
+                        if(val === 'انتظام' || val === 'انتساب') return val; 
+                        return 'اختار النظام';
+                    };
 
-                if (pageParam) {
-                    setPage(pageParam);
-                    setInitialFilters({
-                        year: resolveYear(params.get('y') || params.get('year')),
-                        system: resolveSystem(params.get('s') || params.get('system'))
-                    });
+                    if (pageParam) {
+                        setPage(pageParam);
+                        setInitialFilters({
+                            year: resolveYear(params.get('y') || params.get('year')),
+                            system: resolveSystem(params.get('s') || params.get('system'))
+                        });
 
-                    if(itemParam) {
-                        setHighlightedItemId(itemParam);
-                        setTimeout(() => {
-                            const el = document.getElementById(`card-${itemParam}`);
-                            if(el) {
-                                const y = el.getBoundingClientRect().top + window.scrollY - 100;
-                                window.scrollTo({ top: y, behavior: 'smooth' });
-                            }
-                        }, 800);
+                        if(itemParam) {
+                            setHighlightedItemId(itemParam);
+                            setTimeout(() => {
+                                const el = document.getElementById(`card-${itemParam}`);
+                                if(el) {
+                                    const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                                    window.scrollTo({ top: y, behavior: 'smooth' });
+                                }
+                            }, 800);
+                        }
+                        window.history.replaceState({ page: pageParam }, document.title, window.location.href);
+                    } else {
+                        window.history.replaceState({ page: 'home' }, document.title, window.location.href);
                     }
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (err) {
+                    console.error("Init Error:", err);
                 }
 
                 onAuthStateChanged(auth, (u) => {
@@ -687,23 +738,36 @@
                     unsubSch(); 
                     clearTimeout(welcomeTimer); 
                 };
+            },[]); // مصفوفة فارغة لمنع إعادة التحميل عند التنقل
+
+            // مستمع لزر الرجوع في المتصفح أو الهاتف
+            useEffect(() => {
+                const handlePopState = (e) => {
+                    try {
+                        const params = new URLSearchParams(window.location.search);
+                        const pg = params.get('p') || params.get('page') || 'home';
+                        
+                        if (currentPageRef.current) {
+                            scrollPositions.current[currentPageRef.current] = window.scrollY;
+                        }
+                        
+                        setPage(pg);
+                        
+                        setTimeout(() => {
+                            const topPos = scrollPositions.current[pg] !== undefined ? scrollPositions.current[pg] : 0;
+                            window.scrollTo({ top: topPos, behavior: 'auto' });
+                        }, 10);
+                    } catch (err) {
+                        console.error("PopState Error:", err);
+                    }
+                };
+                window.addEventListener('popstate', handlePopState);
+                return () => window.removeEventListener('popstate', handlePopState);
             },[]);
 
             const getByType = useCallback((type) => {
                 return materials.filter(m => m.sectionType === type);
             },[materials]);
-
-            // تسريع التنقل بين الصفحات باستخدام React Transitions
-            const navigate = useCallback((pg) => {
-                setIsMobileMenuOpen(false);
-                setHighlightedItemId(null);
-                // التمرير للأعلى لحظياً بدون تأخير
-                window.scrollTo({ top: 0, behavior: 'instant' });
-                // استخدام startTransition لمنع تجميد الواجهة أثناء تحديث القسم
-                startTransition(() => {
-                    setPage(pg);
-                });
-            },[]);
 
             return (
                 <div className="min-h-screen flex flex-col relative">
@@ -846,7 +910,6 @@
                                     </div>
                                 </div>
 
-                                {/* إظهار السلايدر دائماً (سواء محمل أو كـ Skeleton) */}
                                 <HomeSlider 
                                     schedules={schedules} 
                                     onPreviewSlider={openSliderPreview} 
@@ -880,17 +943,17 @@
                             </div>
                         )}
 
-                        {page === 'lectures' && <SectionView type="lectures" title="قسم المحاضرات" icon="fa-person-chalkboard" data={getByType('lectures')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
-                        {page === 'notes' && <SectionView type="notes" title="قسم المذكرات" icon="fa-book" data={getByType('notes')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
-                        {page === 'reviews' && <SectionView type="reviews" title="قسم المراجعات والامتحانات" icon="fa-file-shield" data={getByType('reviews')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
-                        {page === 'activities' && <SectionView type="activities" title="معرض الأنشطة العام" icon="fa-users-gear" data={getByType('activities')} hideYearFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
-                        {page === 'training' && <SectionView type="training" title="التدريب والكورسات" icon="fa-graduation-cap" data={getByType('training')} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
-                        {page === 'jobs' && <SectionView type="jobs" title="الوظائف المتاحة" icon="fa-briefcase" data={getByType('jobs')} hideYearFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
-                        {page === 'guide' && <SectionView type="guide" title="دليل الطالب" icon="fa-map-location" data={getByType('guide')} showSystemFilter={true} onBack={() => navigate('home')} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
+                        {page === 'lectures' && <SectionView type="lectures" title="قسم المحاضرات" icon="fa-person-chalkboard" data={getByType('lectures')} showSystemFilter={true} onBack={goBack} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
+                        {page === 'notes' && <SectionView type="notes" title="قسم المذكرات" icon="fa-book" data={getByType('notes')} showSystemFilter={true} onBack={goBack} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
+                        {page === 'reviews' && <SectionView type="reviews" title="قسم المراجعات والامتحانات" icon="fa-file-shield" data={getByType('reviews')} showSystemFilter={true} onBack={goBack} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
+                        {page === 'activities' && <SectionView type="activities" title="معرض الأنشطة العام" icon="fa-users-gear" data={getByType('activities')} hideYearFilter={true} onBack={goBack} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
+                        {page === 'training' && <SectionView type="training" title="التدريب والكورسات" icon="fa-graduation-cap" data={getByType('training')} onBack={goBack} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
+                        {page === 'jobs' && <SectionView type="jobs" title="الوظائف المتاحة" icon="fa-briefcase" data={getByType('jobs')} hideYearFilter={true} onBack={goBack} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
+                        {page === 'guide' && <SectionView type="guide" title="دليل الطالب" icon="fa-map-location" data={getByType('guide')} showSystemFilter={true} onBack={goBack} onPreviewSingle={openSinglePreview} onRequestDownload={handleRequestDownload} initialFilters={initialFilters} showToast={showToast} highlightedItemId={highlightedItemId} />}
 
-                        {page === 'about' && <AboutPage onBack={() => navigate('home')} />}
+                        {page === 'about' && <AboutPage onBack={goBack} />}
                         {page === 'admin' && !isAdmin && <AdminLogin onSuccess={() => { showToast("تم تسجيل الدخول بنجاح", "success"); navigate('adminDash'); }} showToast={showToast} />}
-                        {page === 'adminDash' && isAdmin && <AdminDashboard materials={materials} schedules={schedules} onBack={() => navigate('home')} showToast={showToast} />}
+                        {page === 'adminDash' && isAdmin && <AdminDashboard materials={materials} schedules={schedules} onBack={goBack} showToast={showToast} />}
 
                         <AdSlot id="bottom-ad" />
                     </main>
