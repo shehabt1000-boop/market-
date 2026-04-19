@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإدارة - كلية التجارة</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.2.0?dev=false",
+                "react-dom/client": "https://esm.sh/react-dom@18.2.0/client?dev=false"
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #f3f4f6; }
+        .sidebar-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-gray-800 pb-10">
+
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        // استدعاء أدوات Firebase كاملة للإدارة والكتابة
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { initializeFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyANg4wLchZaikXneXr1c3qhRgcOnvPbfoA",
+            authDomain: "faculty-of-commerce-2026.firebaseapp.com",
+            projectId: "faculty-of-commerce-2026",
+            storageBucket: "faculty-of-commerce-2026.firebasestorage.app",
+            messagingSenderId: "350727231766",
+            appId: "1:350727231766:web:b08a0f335e38bfc2e79837"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = initializeFirestore(app, {});
+
+        const CLOUD_NAME = 'dsxrjmcxs';
+        const UPLOAD_PRESET = 'my_public_preset';
+        const ADMIN_UID = 'mEVbroYWf7cg68SL8CB2uUS8XhZ2';
+
+        const Toast = React.memo(({ message, type }) => {
+            if (!message) return null;
+            const bgClass = type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : 'bg-blue-800';
+            const icon = type === 'error' ? 'fa-triangle-exclamation' : type === 'success' ? 'fa-check-circle' : 'fa-circle-notch fa-spin';
+
+            return (
+                <div className={`fixed top-10 left-1/2 -translate-x-1/2 ${bgClass} text-white px-5 py-2.5 rounded-full shadow-lg text-sm font-bold z-[999] flex items-center gap-3 whitespace-nowrap`}>
+                    <i className={`fa-solid ${icon}`}></i> {message}
+                </div>
+            );
+        });
+
+        const AdminLogin = ({ onSuccess, showToast }) => {
+            const[e, setE] = useState('');
+            const[p, setP] = useState('');
+            const handle = async () => {
+                showToast("جاري التحقق...", "info");
+                try {
+                    const cred = await signInWithEmailAndPassword(auth, e, p);
+                    if (cred.user.uid === ADMIN_UID) onSuccess();
+                    else { signOut(auth); showToast("ليس لديك صلاحية الدخول", "error"); }
+                } catch { showToast("خطأ في البريد أو كلمة المرور", "error"); }
+            };
+            return (
+                <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200 mt-20">
+                    <div className="flex justify-center mb-4 text-blue-900"><i className="fa-solid fa-user-shield text-5xl"></i></div>
+                    <h2 className="text-2xl font-bold mb-6 text-center text-blue-900">تسجيل دخول الإدارة</h2>
+                    <input type="email" placeholder="البريد الإلكتروني" className="w-full mb-4 border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-blue-900 text-sm" onChange={v=>setE(v.target.value)} />
+                    <input type="password" placeholder="كلمة المرور" className="w-full mb-6 border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-blue-900 text-sm" onChange={v=>setP(v.target.value)} />
+                    <button onClick={handle} className="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-md">دخول للنظام</button>
+                    <div className="mt-6 text-center">
+                        <a href="index.html" className="text-gray-500 text-sm font-bold hover:text-blue-900"><i className="fa-solid fa-arrow-right ml-1"></i> العودة لموقع الطلاب</a>
+                    </div>
+                </div>
+            );
+        };
+
+        const AdminDashboard = ({ materials, schedules, showToast }) => {
+            const[title, setTitle] = useState('');
+            const[sec, setSec] = useState('lectures');
+            const[year, setYear] = useState('الفرقة الأولى');
+            const[studySystem, setStudySystem] = useState('عام');
+            const[link, setLink] = useState('');
+            const[phone, setPhone] = useState('');
+            const[description, setDescription] = useState('');
+            const[loading, setLoading] = useState(false);
+            const[uploadProgress, setUploadProgress] = useState(0);
+            const[uploadQueue, setUploadQueue] = useState([]);
+            const[confirmDelete, setConfirmDelete] = useState(null);
+
+            const handleFileChange = (e) => {
+                const files = Array.from(e.target.files);
+                setUploadQueue(files.map(f => {
+                    const isMedia = f.type.startsWith('image/') || f.type.startsWith('video/');
+                    return { file: f, title: isMedia ? '' : f.name.split('.')[0] };
+                }));
+            };
+
+            const uploadFileWithProgress = (file, isCompressed) => {
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.timeout = 0; 
+                    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`);
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            setUploadProgress(isCompressed ? 40 + Math.floor(percent * 0.6) : percent);
+                        }
+                    };
+                    xhr.onload = () => { if (xhr.status === 200) resolve(JSON.parse(xhr.responseText)); else reject(JSON.parse(xhr.responseText)); };
+                    xhr.onerror = () => reject("Network Error");
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', UPLOAD_PRESET);
+                    xhr.send(formData);
+                });
+            };
+
+            const upload = async () => {
+                setLoading(true); setUploadProgress(0);
+                try {
+                    const { default: imageCompression } = await import('https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/+esm');
+                    const finalStudySystem = (sec === 'lectures' || sec === 'notes' || sec === 'reviews' || sec === 'guide') ? studySystem : 'عام';
+
+                    if (uploadQueue.length > 0) {
+                        const hasEmptyTitles = uploadQueue.some(item => !item.title || !item.title.trim());
+                        if (hasEmptyTitles) { showToast("الرجاء كتابة وصف/عنوان لجميع الملفات المحددة", "error"); setLoading(false); return; }
+
+                        for (let i=0; i<uploadQueue.length; i++) {
+                            const item = uploadQueue[i];
+                            setUploadProgress(0);
+                            let fileUrl = null;
+                            let fileToUpload = item.file;
+                            let isPdf = fileToUpload.type === 'application/pdf' || fileToUpload.name.toLowerCase().endsWith('.pdf');
+                            let isVideo = fileToUpload.type.startsWith('video/');
+                            let isCompressed = false;
+
+                            if (fileToUpload.type.startsWith('image/')) {
+                                if (fileToUpload.size > 500 * 1024) { 
+                                    showToast(`جاري ضغط الصورة (${i+1}/${uploadQueue.length})...`, "info");
+                                    try {
+                                        fileToUpload = await imageCompression(fileToUpload, { maxSizeMB: 0.5, maxWidthOrHeight: 1000, useWebWorker: true, onProgress: (p) => setUploadProgress(Math.floor(p * 0.4)) });
+                                        isCompressed = true;
+                                    } catch (e) { console.error("Compression failed", e); }
+                                }
+                            }
+
+                            showToast(`جاري الرفع للسيرفر (${i+1}/${uploadQueue.length})...`, "info");
+                            const d = await uploadFileWithProgress(fileToUpload, isCompressed);
+
+                            if (!isPdf && !isVideo && d.secure_url.includes('/image/upload/')) {
+                                fileUrl = d.secure_url.replace('/upload/', '/upload/w_1000,q_auto,f_auto/');
+                            } else { fileUrl = d.secure_url; }
+
+                            if (sec === 'schedule') {
+                                await addDoc(collection(db, 'schedules'), { title: item.title, url: fileUrl, createdAt: Date.now() });
+                            } else {
+                                await addDoc(collection(db, 'materials'), { 
+                                    title: item.title, fileUrl: fileUrl, sectionType: sec, year: (sec === 'jobs' || sec === 'activities') ? 'عام' : year, 
+                                    studySystem: finalStudySystem, link: sec === 'training' ? link : null, phone: sec === 'jobs' ? phone : null,
+                                    description: sec === 'jobs' ? description : null, createdAt: Date.now(), department: 'عام'
+                                });
+                            }
+                        }
+                    } else {
+                        if (!title) { showToast("الرجاء كتابة العنوان أولاً", "error"); setLoading(false); return; }
+                        showToast("جاري النشر...", "info");
+                        await addDoc(collection(db, 'materials'), { 
+                            title: title, fileUrl: null, sectionType: sec, year: (sec === 'jobs' || sec === 'activities') ? 'عام' : year, 
+                            studySystem: finalStudySystem, link: sec === 'training' ? link : null, phone: sec === 'jobs' ? phone : null,
+                            description: sec === 'jobs' ? description : null, createdAt: Date.now(), department: 'عام'
+                        });
+                    }
+                    showToast("تمت الإضافة بنجاح", "success");
+                    setTitle(''); setLink(''); setPhone(''); setDescription(''); setUploadQueue([]); setUploadProgress(0);
+                    document.getElementById('fileInput').value = '';
+                } catch(e) { showToast("حدث خطأ أثناء الرفع", "error"); console.error(e); }
+                setLoading(false);
+            };
+
+            const requestDelete = (col, id) => setConfirmDelete({ col, id });
+
+            const executeDelete = async () => {
+                if (!confirmDelete) return;
+                try { await deleteDoc(doc(db, confirmDelete.col, confirmDelete.id)); showToast("تم الحذف بنجاح", "success"); } 
+                catch (error) { showToast("حدث خطأ أثناء الحذف", "error"); }
+                setConfirmDelete(null);
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto mt-6 bg-white p-6 md:p-8 rounded-xl shadow-md space-y-6">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-4">
+                        <h2 className="text-xl md:text-2xl font-bold text-blue-900"><i className="fa-solid fa-gauge mr-2"></i> لوحة التحكم والرفع</h2>
+                        <div className="flex gap-2">
+                            <a href="index.html" className="text-blue-700 bg-blue-50 px-4 py-2 rounded-lg font-bold text-sm border border-blue-200"><i className="fa-solid fa-house"></i> الموقع</a>
+                            <button onClick={()=>{signOut(auth); showToast("تم تسجيل الخروج","success");}} className="text-red-600 bg-red-50 px-4 py-2 rounded-lg font-bold text-sm border border-red-200"><i className="fa-solid fa-right-from-bracket"></i> خروج</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <select className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-blue-900 font-bold" value={sec} onChange={v=>setSec(v.target.value)}>
+                            <option value="lectures">قسم المحاضرات</option><option value="notes">قسم المذكرات</option><option value="reviews">قسم المراجعات</option>
+                            <option value="activities">قسم الأنشطة (عام)</option><option value="training">قسم التدريب والكورسات</option><option value="jobs">قسم الوظائف (عام)</option>
+                            <option value="guide">دليل الطالب</option><option value="schedule">جدول محاضرات (سلايدر)</option>
+                        </select>
+
+                        {sec !== 'jobs' && sec !== 'activities' && sec !== 'schedule' && (
+                            <select className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-blue-900 font-bold" value={year} onChange={v=>setYear(v.target.value)}>
+                                <option>الفرقة الأولى</option><option>الفرقة الثانية</option><option>الفرقة الثالثة</option><option>الفرقة الرابعة</option>
+                                {sec === 'training' && <option>كل الفرق</option>}
+                            </select>
+                        )}
+
+                        {(sec === 'lectures' || sec === 'notes' || sec === 'reviews' || sec === 'guide') && (
+                            <select className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-blue-900 font-bold col-span-1 md:col-span-2" value={studySystem} onChange={v=>setStudySystem(v.target.value)}>
+                                <option value="عام">عام (يظهر لطلاب الانتظام والانتساب)</option><option value="انتظام">انتظام فقط</option><option value="انتساب">انتساب فقط</option>
+                            </select>
+                        )}
+
+                        {sec === 'training' && <input placeholder="رابط خارجي (مثال: يوتيوب)" value={link} className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-blue-900" onChange={v=>setLink(v.target.value)} />}
+                        {sec === 'jobs' && <input placeholder="رقم الهاتف (للتواصل واتساب/اتصال)" value={phone} className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-blue-900" onChange={v=>setPhone(v.target.value)} />}
+                        {sec === 'jobs' && <textarea placeholder="اكتب تفاصيل ووصف الوظيفة هنا..." value={description} className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-blue-900 col-span-1 md:col-span-2" rows="3" onChange={v=>setDescription(v.target.value)}></textarea>}
+
+                        <div className="col-span-1 md:col-span-2 border-2 border-dashed border-gray-300 p-4 rounded-xl text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <label className="cursor-pointer block">
+                                <i className="fa-solid fa-cloud-arrow-up text-3xl text-blue-500 mb-2"></i>
+                                <span className="block text-sm font-bold text-gray-700">اضغط لاختيار الملفات (صور، PDF، فيديو)</span>
+                                <input id="fileInput" type="file" multiple className="hidden" onChange={handleFileChange} />
+                            </label>
+                        </div>
+
+                        {uploadQueue.length === 0 && <input maxLength={70} placeholder="العنوان (اسم الملف أو الوظيفة - أقصى حد 70 حرف)" value={title} className="border border-gray-300 p-3 rounded-lg col-span-1 md:col-span-2 focus:outline-none focus:border-blue-900 font-bold" onChange={v=>setTitle(v.target.value)} />}
+
+                        {uploadQueue.length > 0 && (
+                            <div className="col-span-1 md:col-span-2 bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-3">
+                                <label className="text-sm font-bold text-blue-900 block mb-1">أضف وصفاً/عنواناً لكل ملف محدد:</label>
+                                {uploadQueue.map((item, idx) => (
+                                    <div key={idx} className="flex flex-col sm:flex-row items-center gap-2 bg-white p-2 rounded-lg border border-gray-200">
+                                        <span className="text-xs text-gray-500 w-full sm:w-1/3 truncate" dir="ltr">{item.file.name}</span>
+                                        <input maxLength={70} className={`border border-gray-300 p-2 rounded w-full sm:w-2/3 text-sm focus:outline-none focus:border-blue-900 font-bold ${!item.title ? 'border-red-400' : ''}`} value={item.title} placeholder="اكتب العنوان هنا..." onChange={(e) => { const newQ =[...uploadQueue]; newQ[idx].title = e.target.value; setUploadQueue(newQ); }} />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <button onClick={upload} disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl font-bold shadow-md flex justify-center items-center gap-2 text-lg mt-4">
+                        {loading ? <><i className="fa-solid fa-circle-notch fa-spin"></i> جاري الرفع والتجهيز... {uploadProgress}%</> : <><i className="fa-solid fa-upload"></i> إضافة ونشر الآن</>}
+                    </button>
+
+                    <div className="mt-8 border-t border-gray-200 pt-6">
+                        <h3 className="font-bold mb-4 text-blue-900 text-lg"><i className="fa-solid fa-folder-open mr-2"></i> إدارة الملفات والمحتوى:</h3>
+                        <div className="space-y-2 max-h-96 overflow-y-auto sidebar-scroll pr-2">
+                            {materials.map(m => (
+                                <div key={m.id} className="flex justify-between items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-300">
+                                    <span className="font-bold text-sm line-clamp-1">{m.title} <span className="text-xs text-gray-400 font-normal mr-2">({m.sectionType}) - {m.year}</span></span>
+                                    <button onClick={()=>requestDelete('materials', m.id)} className="text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-bold border border-red-100 flex-shrink-0"><i className="fa-solid fa-trash"></i> حذف</button>
+                                </div>
+                            ))}
+                            {schedules.map(s => (
+                                <div key={s.id} className="flex justify-between items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
+                                    <span className="font-bold text-sm line-clamp-1 text-yellow-900">{s.title} <span className="text-xs text-yellow-600 font-normal mr-2">(سلايدر الرئيسية)</span></span>
+                                    <button onClick={()=>requestDelete('schedules', s.id)} className="text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-bold border border-red-100 flex-shrink-0"><i className="fa-solid fa-trash"></i> حذف</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {confirmDelete && (
+                        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
+                                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 text-3xl border border-red-200"><i className="fa-solid fa-triangle-exclamation"></i></div>
+                                <h3 className="text-lg font-bold text-gray-800 mb-2">تأكيد الحذف</h3>
+                                <p className="text-gray-500 mb-6 text-sm font-bold">سيتم حذف هذا العنصر نهائياً، هل أنت متأكد؟</p>
+                                <div className="flex gap-3">
+                                    <button onClick={executeDelete} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-sm font-bold shadow-md">تأكيد الحذف</button>
+                                    <button onClick={() => setConfirmDelete(null)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2.5 rounded-lg text-sm font-bold">إلغاء</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const[user, setUser] = useState(null);
+            const[isAdmin, setIsAdmin] = useState(false);
+            const[materials, setMaterials] = useState([]);
+            const[schedules, setSchedules] = useState([]);
+            const[toast, setToast] = useState({ message: '', type: '' });
+
+            const showToast = (message, type = 'info') => {
+                setToast({ message, type });
+                setTimeout(() => setToast({ message: '', type: '' }), 3000);
+            };
+
+            useEffect(() => {
+                onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                    setIsAdmin(u && u.uid === ADMIN_UID);
+                });
+
+                const qMat = query(collection(db, 'materials'), orderBy('createdAt', 'desc'));
+                onSnapshot(qMat, (snap) => setMaterials(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+                onSnapshot(collection(db, 'schedules'), (snap) => setSchedules(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+            },
