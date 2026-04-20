@@ -64,11 +64,29 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// إشعارات Push كما هي بدون تغيير
+// استقبال الإشعارات وعرضها
 self.addEventListener('push', (event) => {
-  let payload = { title: 'تطبيق تجارة الزقازيق', body: 'تحديث جديد', icon: './icon-192x192.png', url: './' };
-  if (event.data) try { payload = event.data.json(); } catch (e) { payload.body = event.data.text(); }
-  event.waitUntil(self.registration.showNotification(payload.title, { body: payload.body, icon: payload.icon, data: { url: payload.url }}));
+  let payload = { title: 'تطبيق تجارة الزقازيق', body: 'لديك إشعار جديد', icon: './icon-192x192.png', url: './' };
+  
+  if (event.data) {
+    try { 
+      payload = event.data.json(); 
+    } catch (e) { 
+      payload.body = event.data.text(); 
+    }
+  }
+
+  const options = {
+    body: payload.body,
+    icon: payload.icon,
+    badge: './icon-192x192.png',
+    data: { url: payload.url },
+    vibrate:[200, 100, 200]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, options)
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
