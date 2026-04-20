@@ -1,0 +1,7 @@
+{
+  "web_apps":[
+    {
+      "manifest_url": "https://faculty-of-commerce-zag.netlify.app/manifest.json"
+    }
+  ]
+}
