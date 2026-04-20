@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "app.web.faculty_of_commerce_2026.twa",
-        "sha256_cert_fingerprints": ["44:FC:62:89:56:13:FA:F3:B3:68:3E:F6:F0:58:01:11:3D:6D:28:EF:E3:21:35:91:9B:0E:2F:41:1F:2F:A4:8B"]
+        "package_name": "app.netlify.faculty_of_commerce_zag.twa",
+        "sha256_cert_fingerprints": ["4D:F9:80:7D:B9:EA:2A:13:44:96:5F:21:53:57:CA:4A:C4:15:4F:8E:3D:7B:B1:BD:0B:48:E5:02:32:90:24:1B"]
       }
     }]
