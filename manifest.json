@@ -104,20 +104,22 @@
     {
       "name": "المحاضرات",
       "url": "./index.html?page=lectures",
-      "icons":[
-        { "src": "icon-192x192.png", "sizes": "192x192" }
-      ]
+      "icons":[{"src": "icon-192x192.png", "sizes": "192x192"}]
     },
     {
       "name": "الملاحظات",
       "url": "./index.html?page=notes",
-      "icons":[
-        { "src": "icon-192x192.png", "sizes": "192x192" }
-      ]
+      "icons":[{"src": "icon-192x192.png", "sizes": "192x192"}]
     }
   ],
   "prefer_related_applications": false,
-  "related_applications":[],
+  "related_applications":[
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.commerce.zagazig.app",
+      "id": "com.commerce.zagazig.app"
+    }
+  ],
   "scope_extensions":[
     { "origin": "https://shehab-tarek1.github.io" },
     { "origin": "https://faculty-of-commerce-zag.netlify.app" },
@@ -128,7 +130,6 @@
   "widgets":[
     {
       "name": "جدول المحاضرات",
-      "short_name": "الجدول",
       "description": "عرض المحاضرات القادمة والسكاشن لليوم الحالي",
       "tag": "schedule-widget",
       "ms_ac_template": "widgets/schedule-template.json",
@@ -136,8 +137,8 @@
       "type": "application/json",
       "screenshots":[
         {
-          "src": "icon-512x512.png",
-          "sizes": "512x512",
+          "src": "widget-screenshot.png",
+          "sizes": "400x200",
           "label": "أداة جدول المحاضرات"
         }
       ]
