@@ -15,8 +15,6 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
 
-    <!-- تم إزالة رابط خطوط جوجل من هنا وسيتم قراءتها من الملفات المحلية -->
-
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e3a8a">
     <link rel="apple-touch-icon" href="icon-192x192.png">
@@ -42,13 +40,13 @@
     <meta property="og:type" content="website">
 
     <style>
-        /* تعريف خط كايرو محلياً لزيادة السرعة */
+        /* تعريف خط كايرو محلياً لزيادة السرعة ومنع ظهور الخط العادي */
         @font-face {
             font-family: 'Cairo';
             font-style: normal;
             font-weight: 400;
             src: local('Cairo'), url('./assets/fonts/cairo-regular.woff2') format('woff2');
-            font-display: swap;
+            font-display: block; /* يمنع ظهور الخط العادي في البداية */
         }
 
         @font-face {
@@ -56,7 +54,7 @@
             font-style: normal;
             font-weight: 700;
             src: local('Cairo'), url('./assets/fonts/cairo-bold.woff2') format('woff2');
-            font-display: swap;
+            font-display: block;
         }
 
         @font-face {
@@ -64,7 +62,7 @@
             font-style: normal;
             font-weight: 900;
             src: local('Cairo'), url('./assets/fonts/cairo-black.woff2') format('woff2');
-            font-display: swap;
+            font-display: block;
         }
 
         body { font-family: 'Cairo', sans-serif; background-color: #eef2f6; overflow-x: hidden; }
@@ -75,10 +73,9 @@
         .sidebar-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* إلغاء الانتقال العام لتشغيل الأنيميشن بشكل صحيح */
         * { transition: background-color 0.2s, color 0.2s, border-color 0.2s; } 
         .bg-soft-white { background-color: #fafbfc; }
-
+        
         @keyframes highlightPulse {
             0% { box-shadow: 0 0 0 4px #facc15; transform: scale(1.02); border-color: #facc15; }
             10% { box-shadow: 0 0 0 6px rgba(250, 204, 21, 0.8); }
@@ -91,10 +88,17 @@
             z-index: 10;
         }
 
-        /* أنيميشن القائمة المنسدلة */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-5px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translate(-50%, -20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        .toast-animate {
+            animation: toastSlideIn 0.3s ease-out forwards;
         }
     </style>
 </head>
@@ -108,7 +112,6 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, onSnapshot, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
-        // دالة إنشاء معرف مكون من 4 أرقام يبدأ بـ 1
         const toNumericId = (str) => {
             if (!str) return '';
             let hash = 0;
@@ -144,7 +147,7 @@
                 let transform = '/upload/w_300,h_300,c_fill,q_auto:eco,f_auto/';
                 if (type === 'a4') transform = '/upload/w_200,h_280,c_fill,q_auto:eco,f_auto/';
                 if (type === 'slider') transform = '/upload/w_800,h_400,c_fit,q_auto:eco,f_auto/';
-
+                
                 if (url.toLowerCase().endsWith('.pdf')) return url.replace('/upload/', transform).replace(/\.pdf$/i, '.jpg');
                 if (isVideoUrl(url)) return url.replace('/upload/', transform).replace(/\.(mp4|webm|ogg|mov)$/i, '.jpg');
                 return url.replace('/upload/', transform);
@@ -158,7 +161,7 @@
             const icon = type === 'error' ? 'fa-triangle-exclamation' : type === 'success' ? 'fa-check-circle' : 'fa-circle-notch fa-spin';
 
             return (
-                <div className={`fixed top-20 lg:top-24 left-1/2 -translate-x-1/2 ${bgClass} text-white px-5 py-2.5 rounded-full shadow-lg text-xs font-bold z-[999] flex items-center gap-3 whitespace-nowrap`}>
+                <div className={`fixed top-20 lg:top-24 left-1/2 -translate-x-1/2 ${bgClass} text-white px-5 py-2.5 rounded-full shadow-lg text-xs font-bold z-[999] flex items-center gap-3 whitespace-nowrap toast-animate`}>
                     <i className={`fa-solid ${icon} text-sm`} style={icon.includes('spin') ? {animation: 'fa-spin 2s infinite linear !important'} : {}}></i>
                     {message}
                 </div>
@@ -177,7 +180,7 @@
             if (previewData.items.length === 0) return null;
             const currentItem = previewData.items[previewData.index];
             if (!currentItem || !currentItem.url) return null;
-
+            
             const isPdf = currentItem.url.toLowerCase().includes('.pdf');
             const isVid = isVideoUrl(currentItem.url);
             const pdfViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(currentItem.url)}&embedded=true`;
@@ -195,7 +198,7 @@
                         {isPdf ? <iframe onLoad={() => setIsMediaLoading(false)} src={pdfViewerUrl} className="w-full h-full border-0 bg-white relative z-30" title="PDF Preview"></iframe>
                         : isVid ? <video onLoadedData={() => setIsMediaLoading(false)} src={currentItem.url} controls autoPlay className="max-w-full max-h-full outline-none relative z-30" playsInline></video>
                         : <img onLoad={() => setIsMediaLoading(false)} src={currentItem.url} alt="Preview" className="max-w-full max-h-full object-contain relative z-30" decoding="async" />}
-
+                        
                         {previewData.items.length > 1 && (
                             <>
                                 <button onClick={(e) => { e.stopPropagation(); onNavigate('prev'); }} className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/90 text-white w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center z-50"><i className="fa-solid fa-chevron-left text-lg md:text-xl"></i></button>
@@ -214,19 +217,14 @@
             return <div ref={adRef} className={`ad-container w-full ${hasAd ? 'my-6 py-4 bg-gray-50 border' : 'h-0 overflow-hidden'}`}></div>;
         });
 
-        // ==========================
-        // تعديلات SectionView
-        // ==========================
         const SectionView = React.memo(({ type, title, icon, data, hideYearFilter = false, showSystemFilter = false, onBack, onPreviewSingle, onRequestDownload, initialFilters, showToast, highlightedItemId }) => {
             const[filterYear, setFilterYear] = useState(initialFilters?.year || 'اختار الفرقة');
             const[filterSystem, setFilterSystem] = useState(initialFilters?.system || 'اختار النظام'); 
             const[visibleCount, setVisibleCount] = useState(6);
-
-            // حالة للتحكم في فتح وإغلاق القوائم المنسدلة المخصصة
+            
             const[openDropdown, setOpenDropdown] = useState(null);
             const dropdownRef = useRef(null);
 
-            // إغلاق القائمة المنسدلة عند الضغط في أي مكان خارجها
             useEffect(() => {
                 const handleClickOutside = (event) => {
                     if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -237,7 +235,6 @@
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             },[]);
 
-            // استجابة لتغير الفلاتر من الخارج 
             useEffect(() => {
                 if(initialFilters?.year) setFilterYear(initialFilters.year);
                 if(initialFilters?.system) setFilterSystem(initialFilters.system);
@@ -285,23 +282,46 @@
                 try {
                     const baseUrl = getCleanBaseUrl();
                     const shareUrl = `${baseUrl}?p=${type}&i=${toNumericId(item.id)}`;
-
+                    
                     if (navigator.share) await navigator.share({ title: item.title, text: `شاهد: ${item.title}`, url: shareUrl });
                     else { await navigator.clipboard.writeText(shareUrl); showToast("تم نسخ رابط الملف المصغر", "success"); }
                 } catch (err) { console.error(err); }
             };
 
+            // تعديل روابط المشاركة للقسم لتكون قصيرة
             const handleShareSection = async (e) => {
                 e.stopPropagation();
                 try {
                     const baseUrl = getCleanBaseUrl();
                     const params = new URLSearchParams();
                     params.set('p', type);
-                    if (!hideYearFilter && filterYear !== 'اختار الفرقة') params.set('y', filterYear);
-                    if (showSystemFilter && filterSystem !== 'اختار النظام') params.set('s', filterSystem);
+                    
+                    const getYearCode = (y) => {
+                        if(y === 'الفرقة الأولى') return '1';
+                        if(y === 'الفرقة الثانية') return '2';
+                        if(y === 'الفرقة الثالثة') return '3';
+                        if(y === 'الفرقة الرابعة') return '4';
+                        if(y === 'كل الفرق') return 'all';
+                        return '';
+                    };
+                    
+                    const getSystemCode = (s) => {
+                        if(s === 'انتظام') return 'r';
+                        if(s === 'انتساب') return 'a';
+                        return '';
+                    };
 
+                    if (!hideYearFilter && filterYear !== 'اختار الفرقة') {
+                        const yCode = getYearCode(filterYear);
+                        if(yCode) params.set('y', yCode);
+                    }
+                    if (showSystemFilter && filterSystem !== 'اختار النظام') {
+                        const sCode = getSystemCode(filterSystem);
+                        if(sCode) params.set('s', sCode);
+                    }
+                    
                     const shareUrl = `${baseUrl}?${params.toString()}`;
-
+                    
                     if (navigator.share) await navigator.share({ title: title, text: `تصفح ${title} - كلية التجارة`, url: shareUrl });
                     else { await navigator.clipboard.writeText(shareUrl); showToast("تم نسخ رابط القسم بالفلاتر", "success"); }
                 } catch (err) { console.error(err); }
@@ -317,13 +337,12 @@
                             <div className="text-blue-900 text-xs hidden sm:block"><i className={`fa-solid ${icon}`}></i></div>
                             <h2 className="text-xs md:text-sm font-black text-gray-800 whitespace-nowrap">{title}</h2>
                         </div>
-
-                        {/* أزرار الفلترة المخصصة والمشاركة */}
+                        
                         <div className="flex items-center gap-1.5 flex-shrink-0" ref={dropdownRef}>
                             <button onClick={handleShareSection} className="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border border-yellow-200 w-6 h-6 md:w-7 md:h-7 rounded-md flex items-center justify-center flex-shrink-0 shadow-sm transition-colors" title="مشاركة القسم">
                                 <i className="fa-solid fa-share-nodes text-[10px] md:text-xs"></i>
                             </button>
-
+                            
                             {(!hideYearFilter || showSystemFilter) && (
                                 <>
                                     {!hideYearFilter && (
@@ -335,8 +354,7 @@
                                                 {filterYear}
                                                 <i className={`fa-solid fa-chevron-down text-[8px] transition-transform duration-200 ${openDropdown === 'year' ? 'rotate-180' : ''}`}></i>
                                             </button>
-
-                                            {/* القائمة المنسدلة للفرقة */}
+                                            
                                             {openDropdown === 'year' && (
                                                 <div className="absolute top-full mt-1 right-0 w-32 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden animate-[fadeIn_0.2s_ease-out]" style={{animation: 'fadeIn 0.2s ease-out'}}>
                                                     {years.map(y => (
@@ -361,8 +379,7 @@
                                                 {filterSystem}
                                                 <i className={`fa-solid fa-chevron-down text-[8px] transition-transform duration-200 ${openDropdown === 'system' ? 'rotate-180' : ''}`}></i>
                                             </button>
-
-                                            {/* القائمة المنسدلة للنظام */}
+                                            
                                             {openDropdown === 'system' && (
                                                 <div className="absolute top-full mt-1 left-0 right-auto md:right-0 md:left-auto w-28 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden animate-[fadeIn_0.2s_ease-out]" style={{animation: 'fadeIn 0.2s ease-out'}}>
                                                     {systems.map(s => (
@@ -382,12 +399,12 @@
                             )}
                         </div>
                     </div>
-
+                    
                     <div className={gridClass}>
                         {visibleData.length === 0 ? <div className="col-span-full text-center py-12 text-gray-400 text-sm font-bold">لا توجد بيانات متاحة حالياً.</div> : visibleData.map(item => {
                             const isVid = isVideoUrl(item.fileUrl);
                             const numericId = toNumericId(item.id);
-
+                            
                             if (isActivities) {
                                 return (
                                     <div key={item.id} id={`card-${numericId}`} className="optimized-card break-inside-avoid relative rounded-xl overflow-hidden cursor-pointer shadow-sm border border-gray-200 bg-black group" onClick={() => onPreviewSingle(item.fileUrl)}>
@@ -408,7 +425,6 @@
                                     </div>
                                     <div className="flex flex-col flex-grow justify-between min-w-0 py-0.5">
                                         <div>
-                                            {/* تعديل شريط الفرقة / الوظائف */}
                                             <div className="flex items-center justify-between mb-1.5">
                                                 {type === 'jobs' ? (
                                                     <span className="text-[9px] bg-cyan-50 text-cyan-700 px-1.5 py-0.5 rounded font-bold border border-cyan-100 truncate max-w-[60%] shadow-sm">
@@ -417,10 +433,10 @@
                                                 ) : !hideYearFilter ? (
                                                     <span className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold border border-blue-100 truncate max-w-[60%]">{item.year}</span>
                                                 ) : null}
-
+                                                
                                                 {item.createdAt && <span className="text-[9px] text-gray-400 font-bold" dir="ltr">{formatDate(item.createdAt)}</span>}
                                             </div>
-
+                                            
                                             <h4 className="font-bold text-gray-800 leading-snug text-[11px] md:text-xs line-clamp-2" title={item.title}>{item.title}</h4>
                                             {item.description && <div className="mt-1.5 text-[9px] md:text-[10px] text-gray-600 bg-soft-white border border-gray-100 p-1.5 rounded-lg max-h-16 overflow-y-auto sidebar-scroll whitespace-pre-wrap leading-relaxed">{item.description}</div>}
                                         </div>
@@ -545,7 +561,7 @@
             const[page, setPage] = useState('home');
             const[initialFilters, setInitialFilters] = useState({ year: 'اختار الفرقة', system: 'اختار النظام' });
             const[highlightedItemId, setHighlightedItemId] = useState(null);
-
+            
             const[materials, setMaterials] = useState(() => {
                 const cached = localStorage.getItem('foc_materials_cache');
                 return cached ? JSON.parse(cached) :[];
@@ -554,7 +570,7 @@
                 const cached = localStorage.getItem('foc_schedules_cache');
                 return cached ? JSON.parse(cached) :[];
             });
-
+            
             const[isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             const[previewData, setPreviewData] = useState({ items:[], index: -1 });
             const[downloadItem, setDownloadItem] = useState(null); 
@@ -623,17 +639,18 @@
                 }
             };
 
+            // تم تأخير نزول الشاشة (Scroll) لـ 50 ملي ثانية لمنع القفزة
             const navigate = useCallback((pg) => {
                 try {
                     setIsMobileMenuOpen(false); setHighlightedItemId(null);
                     if (currentPageRef.current) scrollPositions.current[currentPageRef.current] = window.scrollY;
-
+                    
                     const url = new URL(getCleanBaseUrl());
                     url.searchParams.set('p', pg); 
                     window.history.pushState({ page: pg }, '', url.toString());
-
+                    
                     setPage(pg);
-                    setTimeout(() => { const topPos = scrollPositions.current[pg] !== undefined ? scrollPositions.current[pg] : 0; window.scrollTo({ top: topPos, behavior: 'instant' }); }, 0);
+                    setTimeout(() => { const topPos = scrollPositions.current[pg] !== undefined ? scrollPositions.current[pg] : 0; window.scrollTo({ top: topPos, behavior: 'instant' }); }, 50);
                 } catch (err) { setPage(pg); window.scrollTo(0, 0); }
             },[]);
 
@@ -643,7 +660,7 @@
                     const url = new URL(getCleanBaseUrl());
                     window.history.pushState({ page: 'home' }, '', url.toString());
                     setPage('home');
-                    setTimeout(() => { const topPos = scrollPositions.current['home'] !== undefined ? scrollPositions.current['home'] : 0; window.scrollTo({ top: topPos, behavior: 'instant' }); }, 0);
+                    setTimeout(() => { const topPos = scrollPositions.current['home'] !== undefined ? scrollPositions.current['home'] : 0; window.scrollTo({ top: topPos, behavior: 'instant' }); }, 50);
                 } catch (err) { navigate('home'); }
             }, [navigate]);
 
@@ -671,7 +688,7 @@
                         if(itemParam) {
                             setHighlightedItemId(itemParam);
                         }
-
+                        
                         const cleanUrl = getCleanBaseUrl() + window.location.search;
                         window.history.replaceState({ page: pageParam }, document.title, cleanUrl);
                     } else { window.history.replaceState({ page: 'home' }, document.title, getCleanBaseUrl()); }
@@ -683,7 +700,7 @@
                     setMaterials(data);
                     localStorage.setItem('foc_materials_cache', JSON.stringify(data));
                 });
-
+                
                 const unsubSch = onSnapshot(collection(db, 'schedules'), { includeMetadataChanges: true }, (snap) => {
                     const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     setSchedules(data);
@@ -693,6 +710,7 @@
                 return () => { unsubMat(); unsubSch(); clearTimeout(welcomeTimer); };
             },[]);
 
+            // منع تكرار تحديد العنصر مرتين (Double Highlight Fix)
             useEffect(() => {
                 if (highlightedItemId && materials.length > 0) {
                     const item = materials.find(m => toNumericId(m.id) === highlightedItemId);
@@ -701,17 +719,20 @@
                             year: item.year || 'اختار الفرقة',
                             system: item.studySystem || 'اختار النظام'
                         });
-
+                        
                         setTimeout(() => {
                             const el = document.getElementById(`card-${highlightedItemId}`);
-                            if(el) {
+                            if(el && !el.classList.contains('card-highlight')) {
                                 const y = el.getBoundingClientRect().top + window.scrollY - 100;
                                 window.scrollTo({ top: y, behavior: 'smooth' });
-
+                                
                                 el.classList.add('card-highlight');
-                                setTimeout(() => el.classList.remove('card-highlight'), 3100);
+                                setTimeout(() => {
+                                    el.classList.remove('card-highlight');
+                                    setHighlightedItemId(null); // يمسح المتغير عشان ميتكررش
+                                }, 3100);
                             }
-                        }, 600);
+                        }, 500);
                     }
                 }
             }, [materials, highlightedItemId]);
@@ -723,7 +744,7 @@
                         const pg = params.get('p') || params.get('page') || 'home';
                         if (currentPageRef.current) scrollPositions.current[currentPageRef.current] = window.scrollY;
                         setPage(pg);
-                        setTimeout(() => { const topPos = scrollPositions.current[pg] !== undefined ? scrollPositions.current[pg] : 0; window.scrollTo({ top: topPos, behavior: 'instant' }); }, 0);
+                        setTimeout(() => { const topPos = scrollPositions.current[pg] !== undefined ? scrollPositions.current[pg] : 0; window.scrollTo({ top: topPos, behavior: 'instant' }); }, 50);
                     } catch (err) {}
                 };
                 window.addEventListener('popstate', handlePopState);
