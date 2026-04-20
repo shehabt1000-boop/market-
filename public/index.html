@@ -639,7 +639,7 @@
                 }
             };
 
-            // تم تأخير نزول الشاشة (Scroll) لـ 50 ملي ثانية لمنع القفزة
+        // تنفيذ فوري لضمان سرعة الاستجابة اللحظية
             const navigate = useCallback((pg) => {
                 try {
                     setIsMobileMenuOpen(false); setHighlightedItemId(null);
@@ -650,7 +650,8 @@
                     window.history.pushState({ page: pg }, '', url.toString());
                     
                     setPage(pg);
-                    setTimeout(() => { const topPos = scrollPositions.current[pg] !== undefined ? scrollPositions.current[pg] : 0; window.scrollTo({ top: topPos, behavior: 'instant' }); }, 50);
+                    // تنفيذ فوري بدون تأخير
+                    window.scrollTo({ top: 0, behavior: 'instant' }); 
                 } catch (err) { setPage(pg); window.scrollTo(0, 0); }
             },[]);
 
@@ -660,7 +661,9 @@
                     const url = new URL(getCleanBaseUrl());
                     window.history.pushState({ page: 'home' }, '', url.toString());
                     setPage('home');
-                    setTimeout(() => { const topPos = scrollPositions.current['home'] !== undefined ? scrollPositions.current['home'] : 0; window.scrollTo({ top: topPos, behavior: 'instant' }); }, 50);
+                    // استعادة مكان التمرير السابق فوراً
+                    const topPos = scrollPositions.current['home'] || 0;
+                    window.scrollTo({ top: topPos, behavior: 'instant' });
                 } catch (err) { navigate('home'); }
             }, [navigate]);
 
