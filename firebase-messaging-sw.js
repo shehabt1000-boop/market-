@@ -1,5 +1,5 @@
 // ==========================================
-// 1. إعدادات فايربيز
+// 1. إعدادات فايربيز لاستقبال الإشعارات
 // ==========================================
 importScripts('https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js');
@@ -15,23 +15,53 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// ترك هذه الدالة فارغة أو لحفظ بيانات فقط لأن فايربيز يعرض الإشعار تلقائياً في الخلفية
-// إذا قمت بعمل showNotification هنا يدوياً قد يظهر الإشعار مرتين أو يحدث خطأ
+// معالجة الرسائل والموقع مغلق أو في الخلفية
 messaging.onBackgroundMessage(function(payload) {
-  console.log('[ServiceWorker] رسالة في الخلفية: ', payload);
+  console.log('[ServiceWorker] استلام إشعار في الخلفية: ', payload);
+  
+  const notificationTitle = payload.notification?.title || 'تحديث جديد من التجارة';
+  const notificationOptions = {
+    body: payload.notification?.body || '',
+    icon: './icon-192x192.png',
+    badge: './icon-192x192.png',
+    vibrate: [200, 100, 200],
+    data: { 
+      // دعم الروابط سواء جاءت في custom data أو الـ link الافتراضي
+      url: payload.data?.url || payload.data?.link || payload.fcmOptions?.link || './' 
+    }
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// التفاعل عند النقر على الإشعار
+// التعامل مع الضغط على الإشعار من قِبل المستخدم (سواء الموبايل مغلق أو مفتوح)
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const urlToOpen = event.notification.data?.url || event.notification.data?.link || './';
-  event.waitUntil(clients.openWindow(urlToOpen));
+  event.notification.close(); // إغلاق الإشعار بعد الضغط عليه
+  
+  const urlToOpen = event.notification.data?.url || './';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // إذا كان الموقع مفتوحاً بالفعل، قم بتبديل التبويب وعمل التركيز عليه (focus)
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(urlToOpen); // توجيه للرابط
+          return client.focus();
+        }
+      }
+      // إذا كان الموقع مغلقاً بالكامل، افتح نافذة جديدة
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
 });
 
 // ==========================================
-// 2. كود الكاش السريع (بدون استهلاك باقة الإنترنت)
+// 2. كاش الموقع (تسريع الموقع وحل مشكلة الباقة)
 // ==========================================
-const CACHE_NAME = 'commerce-zagazig-v8-optimized'; // تم تغيير الاسم لتحديث الكاش عند المستخدمين
+const CACHE_NAME = 'commerce-zagazig-v9-speed'; // تم تغيير الاسم لتحديث كاش كل الناس
 
 const APP_SHELL =[
   './',
@@ -62,23 +92,28 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 🔴 مهم جداً: تخطي طلبات فايربيز وجوجل تماماً حتى لا تفشل الإشعارات
-  if (event.request.method !== 'GET' || 
-      !url.protocol.startsWith('http') || 
-      url.host.includes('firestore') || 
-      url.host.includes('googleapis.com') || // هذا السطر هو الذي كان يعطل إنشاء التوكن
-      url.host.includes('firebase') ||
-      url.host.includes('cloudinary.com') || 
-      url.host.includes('esm.sh')) {
-    return; 
+  // 🚨🚨 التعديل الأهم: منع الكاش من تدمير اتصالات Firebase (هذا كان سبب فشل حفظ التوكن)
+  if (
+    event.request.method !== 'GET' || 
+    !url.protocol.startsWith('http') || 
+    url.host.includes('firestore.googleapis.com') || 
+    url.host.includes('firebase') || 
+    url.host.includes('fcm.googleapis.com') || // استثناء خوادم الإشعارات من الكاش
+    url.host.includes('cloudinary.com') || 
+    url.host.includes('esm.sh')
+  ) {
+    return; // دع الطلب يمر للإنترنت مباشرة
   }
 
-  // استراتيجية Cache First (لإنهاء مشكلة البطء)
+  // استراتيجية Cache First للملفات الباقية (لجعل الموقع صاروخي)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
+      // إذا وجد الملف في الكاش، يعرضه فورا دون تحميل من الإنترنت (يحل البطء)
       if (cachedResponse) {
-        return cachedResponse; // إرجاع الملف من الكاش فوراً بدون عمل fetch في الخلفية
+        return cachedResponse;
       }
+
+      // إذا لم يكن موجودا، يحمله ويضعه في الكاش للمرة القادمة
       return fetch(event.request).then((response) => {
         if (response.ok && url.origin === self.location.origin) {
           const resClone = response.clone();
